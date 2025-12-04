@@ -1,0 +1,16 @@
+order_id,customer_id,order_date,ship_country,product_category,quantity,unit_price_usd,discount_pct,payment_method
+1001,C001,2025-10-01,United States,Electronics,1,799.99,0.10,Credit Card
+1002,C002,2025-10-01,Germany,Home & Kitchen,2,39.99,0.00,PayPal
+1003,C003,2025-10-02,United States,Books,3,14.99,0.05,Credit Card
+1004,C004,2025-10-02,Canada,Electronics,1,1299.00,0.15,Credit Card
+1005,C001,2025-10-03,United Kingdom,Clothing,4,29.50,0.20,Debit Card
+1006,C005,2025-10-03,United States,Home & Kitchen,1,59.99,0.00,Credit Card
+1007,C006,2025-10-03,France,Toys,2,19.99,0.00,PayPal
+1008,C007,2025-10-04,Germany,Electronics,1,499.00,0.05,Credit Card
+1009,C008,2025-10-04,United States,Clothing,2,35.00,0.00,Debit Card
+1010,C009,2025-10-05,Canada,Books,1,9.99,0.00,Credit Card
+1011,C010,2025-10-05,United States,Electronics,2,249.50,0.10,PayPal
+1012,C011,2025-10-05,Spain,Home & Kitchen,1,89.99,0.00,Credit Card
+1013,C012,2025-10-06,United States,Toys,3,24.99,0.05,Credit Card
+1014,C002,2025-10-06,Germany,Books,2,17.99,0.00,PayPal
+1015,C013,2025-10-06,United Kingdom,Electronics,1,699.00,0.20,Credit Card
