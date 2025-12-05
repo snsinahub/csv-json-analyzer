@@ -5,8 +5,9 @@ A comprehensive Node.js application for analyzing, generating, and updating CSV 
 ## Features
 
 - **Dual Interface**: Access functionality through both CLI scripts and a modern web application
-- **CSV Analysis**: Detailed statistics including row/column counts, data types, min/max/average values
-- **CSV Generation**: Create sample CSV files with customizable row counts
+- **CSV Analysis**: Detailed statistics, dynamic field type detection, business pattern recognition, and interactive visualizations
+- **Table View**: Paginated data table with sorting, filtering, inline editing, and JSON export
+- **Data Generator**: Visual schema designer with 5+ templates to generate realistic fake data
 - **CSV Updates**: Add new rows to existing CSV files
 - **Responsive Design**: Professional web interface using Bootstrap and Semantic UI
 - **Interactive Dashboard**: User-friendly web application with drag-and-drop file upload
@@ -14,10 +15,13 @@ A comprehensive Node.js application for analyzing, generating, and updating CSV 
 ## Technology Stack
 
 - **Runtime**: Node.js
-- **Web Framework**: Next.js with React
-- **UI Libraries**: Bootstrap (responsive design) + Semantic UI (UI components)
-- **CSV Processing**: PapaParse, csv-parser
-- **File Handling**: Multer
+- **Web Framework**: Next.js 16 with React 18
+- **UI Libraries**: Bootstrap 5.3 (responsive design) + Semantic UI (UI components)
+- **CSV Processing**: PapaParse
+- **Data Visualization**: Recharts (interactive charts)
+- **Data Generation**: Faker.js (realistic fake data)
+- **File Handling**: file-saver (client-side downloads)
+- **Notifications**: react-hot-toast
 
 ## Installation
 
@@ -55,7 +59,9 @@ http://localhost:3000
 
 3. Use the web interface to:
    - **Dashboard**: View overview and quick access to all features
-   - **Analyze**: Upload CSV files and view detailed statistics
+   - **Analyze**: Upload CSV files and view detailed statistics with dynamic insights and visualizations
+   - **Table View**: View, sort, filter, edit CSV data in a paginated table and export to JSON
+   - **Data Generator**: Design schemas and generate realistic fake data with pre-built templates
    - **Generate**: Create new CSV files with sample data
    - **Update**: Add rows to existing CSV files
 
@@ -123,19 +129,42 @@ node scripts/update.js data/orders.csv data/orders-updated.csv 5
 ```
 csv-analyzer/
 ├── app/                      # Next.js application routes
-│   ├── analyze/             # CSV analysis page
+│   ├── analyze/             # CSV analysis page with visualizations
+│   ├── table-view/          # Paginated table view with editing
+│   ├── schema-designer/     # Data generator with schema builder
 │   ├── generate/            # CSV generation page
 │   ├── update/              # CSV update page
 │   ├── layout.js            # Root layout with Bootstrap/Semantic UI
 │   ├── page.js              # Dashboard homepage
 │   └── globals.css          # Global styles
 ├── components/              # React components
-│   └── Navigation.js        # Navigation bar component
+│   ├── Navigation.js        # Navigation bar component
+│   ├── DynamicReport.js     # Dynamic analysis report
+│   ├── VisualizationPanel.js # Chart container
+│   ├── DataTable.js         # Paginated data table
+│   ├── TablePagination.js   # Pagination controls
+│   ├── EditableCell.js      # Inline editable cell
+│   ├── ExportModal.js       # JSON export dialog
+│   ├── SchemaBuilder.js     # Schema designer
+│   ├── ColumnConfig.js      # Column configuration panel
+│   └── charts/              # Chart components (5 types)
+│       ├── TimeSeriesChart.js
+│       ├── PieChartComponent.js
+│       ├── BarChartComponent.js
+│       ├── HistogramChart.js
+│       └── ScatterPlotChart.js
 ├── data/                    # Sample CSV files
 │   ├── orders.csv
 │   └── sample.csv
-├── lib/                     # Backend logic
-│   └── csvHelper.js         # CSV processing utilities
+├── lib/                     # Utilities and helpers
+│   ├── csvHelper.js         # CSV processing utilities
+│   ├── csvAnalyzer.js       # Dynamic analysis engine
+│   ├── chartUtils.js        # Chart data preparation
+│   ├── schemaGenerator.js   # Data generation with templates
+│   ├── tableUtils.js        # Pagination, sorting, filtering
+│   ├── exportUtils.js       # JSON/CSV export
+│   ├── dataValidation.js    # Type checking and validation
+│   └── editHistory.js       # Undo/redo management
 ├── scripts/                 # CLI scripts
 │   ├── analyze.js           # CSV analysis script
 │   ├── generate.js          # CSV generation script
@@ -275,12 +304,108 @@ The `lib/csvHelper.js` module provides the following functions:
   - `outputPath` (string) - Path to save updated CSV
 - **Returns**: Promise<string> - Path to saved file
 
+## Web Application Features
+
+### Table View
+
+The Table View page provides a comprehensive data table interface with:
+
+- **Pagination**: Navigate through large datasets with configurable rows per page (10, 25, 50, 100)
+- **Sorting**: Click column headers to sort data ascending/descending
+- **Filtering**: Search within columns using individual filter inputs
+- **Inline Editing**: Double-click cells to edit values with type validation
+- **Undo/Redo**: Full edit history with undo/redo support
+- **Add Rows**: Insert new rows with empty values
+- **JSON Export**: Export data to JSON with customizable formatting options
+- **CSV Export**: Download edited data as CSV file
+
+**Usage:**
+1. Navigate to `/table-view`
+2. Upload a CSV file
+3. Use pagination, sorting, and filtering to explore data
+4. Enable "Edit Mode" to make changes
+5. Export to JSON or save changes as CSV
+
+### Data Generator (Schema Designer)
+
+Create custom data schemas and generate realistic fake data:
+
+- **Visual Schema Builder**: Drag-and-drop interface for designing data structures
+- **28+ Data Types**: Including names, emails, addresses, dates, numbers, UUIDs, and more
+- **Pre-built Templates**: 5 ready-to-use schemas (E-commerce Orders, Customer Database, Product Inventory, Employee Records, Sales Transactions)
+- **Type-Specific Configuration**: Set ranges, formats, and constraints per column
+- **Reproducible Data**: Use seed values for consistent data generation
+- **Preview**: See sample data before generating full dataset
+- **Custom Templates**: Save your schemas for reuse
+
+**Supported Data Types:**
+- **Numbers**: Sequential, Integer, Decimal, Currency, Percentage
+- **Text**: Random text, First/Last/Full names, Company, Job Title
+- **Contact**: Email, Phone, URL
+- **Location**: Address, City, State, Country, ZIP Code
+- **Date/Time**: Date, DateTime
+- **Other**: Boolean, Category, Status, UUID, Product, SKU
+
+**Usage:**
+1. Navigate to `/schema-designer`
+2. Load a template or start from scratch
+3. Add/configure columns with data types
+4. Set generation options (row count, seed)
+5. Preview data
+6. Generate and download CSV
+
+### Dynamic Analysis
+
+The Analyze page includes intelligent analysis features:
+
+- **Field Type Detection**: Automatically detects 10+ data types (integers, decimals, emails, phones, dates, URLs, etc.)
+- **Business Pattern Recognition**: Identifies common patterns (orders, customers, products, transactions, time-series)
+- **Context-Aware Insights**: Generates intelligent insights based on data patterns and anomalies
+- **Data Quality Metrics**: Shows completeness, consistency, and validity scores
+- **Interactive Visualizations**: 5 chart types (Time Series, Pie, Bar, Histogram, Scatter Plot)
+- **Smart Chart Detection**: Automatically suggests appropriate visualizations based on data
+
+**Analysis Features:**
+- Summary statistics with visual cards
+- Field-by-field analysis with type detection
+- Collapsible sections for easy navigation
+- Color-coded insight badges (positive, negative, neutral)
+- Visualization recommendations
+- Export-ready insights
+
 ## Sample Data
 
 The `data/` directory contains sample CSV files for testing:
 
 - `orders.csv` - Sample order data
 - `sample.csv` - Generic sample data
+
+## Keyboard Shortcuts
+
+### Table View
+- `Double-click` cell - Edit cell value
+- `Enter` - Save cell edit
+- `Escape` - Cancel cell edit
+
+### Schema Designer
+- Drag columns to reorder
+- Click column to configure
+
+## Browser Support
+
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
+
+All modern browsers with ES6+ support.
+
+## Performance Notes
+
+- Table View: Optimized for datasets up to 10,000 rows
+- Data Generator: Can generate up to 100,000 rows
+- Large file handling: Uses chunked processing for files >5000 rows
+- Client-side processing: All operations run in browser (no server required)
 
 ## Contributing
 
@@ -300,4 +425,4 @@ For issues and questions, please create an issue on the [GitHub repository](http
 
 ---
 
-**Built with ❤️ using Next.js, React, Bootstrap, and Semantic UI**
+**Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, and Faker.js**

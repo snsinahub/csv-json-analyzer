@@ -76,13 +76,79 @@ export default function Home() {
                 </div>
                 <Card.Title className="text-center">Analyze CSV</Card.Title>
                 <Card.Text>
-                  Upload and analyze CSV files to get detailed statistics, column information,
-                  and data insights including min, max, average values for numeric columns.
+                  Upload and analyze CSV files to get detailed statistics, dynamic insights,
+                  field type detection, and interactive visualizations.
                 </Card.Text>
                 <div className="text-center">
                   <Link href="/analyze" passHref legacyBehavior>
                     <Button variant="primary">
                       Analyze <Icon name="arrow right" />
+                    </Button>
+                  </Link>
+                </div>
+              </Card.Body>
+            </Card>
+          </div>
+
+          <div className="col-md-4">
+            <Card className="feature-card">
+              <Card.Body>
+                <div className="text-center mb-3">
+                  <Icon name="table" size="huge" color="blue" />
+                </div>
+                <Card.Title className="text-center">Table View</Card.Title>
+                <Card.Text>
+                  View CSV data in a paginated table with sorting, filtering, inline editing,
+                  and export to JSON functionality.
+                </Card.Text>
+                <div className="text-center">
+                  <Link href="/table-view" passHref legacyBehavior>
+                    <Button variant="info">
+                      View <Icon name="arrow right" />
+                    </Button>
+                  </Link>
+                </div>
+              </Card.Body>
+            </Card>
+          </div>
+
+          <div className="col-md-4">
+            <Card className="feature-card">
+              <Card.Body>
+                <div className="text-center mb-3">
+                  <Icon name="pencil" size="huge" color="orange" />
+                </div>
+                <Card.Title className="text-center">Schema Designer</Card.Title>
+                <Card.Text>
+                  Design custom data schemas from scratch, upload existing schemas (JSON),
+                  or auto-generate from CSV files. Export to CSV, JSON, or SQL.
+                </Card.Text>
+                <div className="text-center">
+                  <Link href="/schema-designer" passHref legacyBehavior>
+                    <Button variant="warning">
+                      Design <Icon name="arrow right" />
+                    </Button>
+                  </Link>
+                </div>
+              </Card.Body>
+            </Card>
+          </div>
+
+          <div className="col-md-4">
+            <Card className="feature-card">
+              <Card.Body>
+                <div className="text-center mb-3">
+                  <Icon name="magic" size="huge" color="violet" />
+                </div>
+                <Card.Title className="text-center">Data Generator</Card.Title>
+                <Card.Text>
+                  Generate realistic fake data using pre-built templates for orders,
+                  customers, products, employees, and sales transactions.
+                </Card.Text>
+                <div className="text-center">
+                  <Link href="/data-generator" passHref legacyBehavior>
+                    <Button variant="secondary">
+                      Generate <Icon name="arrow right" />
                     </Button>
                   </Link>
                 </div>

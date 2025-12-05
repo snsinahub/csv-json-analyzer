@@ -21,14 +21,18 @@
   },
   "homepage": "https://github.com/snsinahub-org/csv-analyzer#readme",
   "dependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@tanstack/react-table": "^8.21.3",
     "bootstrap": "^5.3.8",
     "csv-parser": "^3.2.0",
+    "file-saver": "^2.0.5",
     "multer": "^2.0.2",
     "next": "^16.0.7",
     "papaparse": "^5.5.3",
     "react": "^18.3.1",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0",
     "recharts": "^3.5.1",
     "semantic-ui-css": "^2.5.0",
     "semantic-ui-react": "^2.1.5"

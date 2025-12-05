@@ -26,6 +26,21 @@ export default function Navigation() {
                 <Icon name="chart line" /> Analyze
               </Nav.Link>
             </Link>
+            <Link href="/table-view" passHref legacyBehavior>
+              <Nav.Link as="span">
+                <Icon name="table" /> Table View
+              </Nav.Link>
+            </Link>
+            <Link href="/schema-designer" passHref legacyBehavior>
+              <Nav.Link as="span">
+                <Icon name="pencil" /> Schema Designer
+              </Nav.Link>
+            </Link>
+            <Link href="/data-generator" passHref legacyBehavior>
+              <Nav.Link as="span">
+                <Icon name="magic" /> Data Generator
+              </Nav.Link>
+            </Link>
             <Link href="/generate" passHref legacyBehavior>
               <Nav.Link as="span">
                 <Icon name="plus" /> Generate

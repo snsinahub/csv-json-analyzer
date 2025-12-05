@@ -223,4 +223,133 @@ body {
   overflow: visible;
 }
 
+/* Table View Styles */
+.data-table-container {
+  position: relative;
+}
 
+.data-table-container .table {
+  margin-bottom: 0;
+}
+
+.data-table-container thead.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f8f9fa;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-header:hover {
+  background-color: #e9ecef;
+}
+
+.edited-cell {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107;
+  position: relative;
+}
+
+.edited-cell::after {
+  content: '✎';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  color: #ffc107;
+  font-size: 12px;
+}
+
+.editable-cell-display {
+  min-height: 24px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+}
+
+.editable-cell-display:hover {
+  background-color: #f8f9fa;
+  outline: 1px dashed #ccc;
+}
+
+.editable-cell-input input {
+  font-size: 14px;
+}
+
+/* Schema Builder Styles */
+.schema-builder .column-item {
+  transition: all 0.2s;
+}
+
+.schema-builder .column-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.schema-builder .column-item.border-primary {
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+.border-dashed {
+  border-style: dashed !important;
+}
+
+/* Pagination Styles */
+.pagination-container .pagination {
+  flex-wrap: wrap;
+}
+
+.pagination-container .page-link {
+  cursor: pointer;
+}
+
+/* Export Modal Styles */
+.modal-body pre {
+  font-size: 12px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Toast Notifications */
+.Toaster {
+  z-index: 9999;
+}
+
+/* Loading States */
+.btn .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .table-controls {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .schema-builder .row > [class*="col-"] {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .btn,
+  .pagination-container,
+  .table-controls {
+    display: none !important;
+  }
+  
+  .data-table-container .table {
+    font-size: 10px;
+  }
+  
+  .edited-cell {
+    background-color: white !important;
+    border-left: none !important;
+  }
+}
