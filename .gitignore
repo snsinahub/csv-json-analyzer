@@ -25,6 +25,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# OAuth encrypted configuration (contains secrets)
+.auth-config.enc
+
 # Vercel
 .vercel
 

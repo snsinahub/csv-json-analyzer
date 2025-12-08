@@ -5,9 +5,10 @@ A comprehensive Node.js application for analyzing, generating, and updating CSV 
 ## Features
 
 - **Dual Interface**: Access functionality through both CLI scripts and a modern web application
+- **🔐 Portable GitHub OAuth**: Sign in with GitHub - works everywhere without .env files!
 - **CSV Analysis**: Detailed statistics, dynamic field type detection, business pattern recognition, and interactive visualizations
 - **Table View**: Paginated data table with sorting, filtering, inline editing, and JSON export
-- **Data Generator**: Visual schema designer with 5+ templates to generate realistic fake data
+- **Data Generator**: Visual schema designer with 11+ templates to generate realistic fake data
 - **CSV Updates**: Add new rows to existing CSV files
 - **Responsive Design**: Professional web interface using Bootstrap and Semantic UI
 - **Interactive Dashboard**: User-friendly web application with drag-and-drop file upload
@@ -16,12 +17,14 @@ A comprehensive Node.js application for analyzing, generating, and updating CSV 
 
 - **Runtime**: Node.js
 - **Web Framework**: Next.js 16 with React 18
+- **Authentication**: NextAuth.js with GitHub OAuth + PKCE Security
 - **UI Libraries**: Bootstrap 5.3 (responsive design) + Semantic UI (UI components)
 - **CSV Processing**: PapaParse
 - **Data Visualization**: Recharts (interactive charts)
 - **Data Generation**: Faker.js (realistic fake data)
 - **File Handling**: file-saver (client-side downloads)
 - **Notifications**: react-hot-toast
+- **Security**: AES-256 encrypted credential storage, PKCE OAuth flow
 
 ## Installation
 
@@ -42,6 +45,41 @@ cd csv-analyzer
 ```bash
 npm install
 ```
+
+3. **Set up Portable GitHub OAuth** (1 minute - works everywhere!):
+
+   **🚀 Quick Setup (Recommended):**
+   ```bash
+   npm run setup-oauth
+   ```
+   This interactive script will guide you through everything!
+
+   **Or use environment variables (for production):**
+   ```bash
+   export GITHUB_ID=your_client_id
+   export GITHUB_SECRET=your_client_secret
+   export NEXTAUTH_SECRET=$(openssl rand -base64 32)
+   npm run dev
+   ```
+
+   **Need help?** See [OAUTH_QUICKSTART.md](./OAUTH_QUICKSTART.md) or [Full Documentation](./PORTABLE_OAUTH_SETUP.md)
+
+4. Start the development server:
+```bash
+npm run dev
+```
+      You should see ✅ for all variables.
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+5. Open your browser: http://localhost:3000
+
+6. Click **"Sign in with GitHub"** → Authorize → You're logged in! ✅
+
+**See `START_HERE.md` for detailed setup instructions.**
 
 ## Usage
 
@@ -84,13 +122,15 @@ node scripts/analyze.js data/orders.csv
 - Total rows and columns
 - Column names
 - Column statistics (unique values, null counts, numeric analysis)
-- For numeric columns: min, max, average, and sum
-
-#### Generate a CSV File
-
-Create a new CSV file with sample employee data:
-
-```bash
+3. Use the web interface to:
+   - **Sign In**: Click the "Sign In" button in the navigation to personalize your experience (saved locally)
+   - **Dashboard**: View overview and quick access to all features
+   - **Analyze**: Upload CSV files and view detailed statistics with dynamic insights and visualizations
+   - **Table View**: View, sort, filter, edit CSV data in a paginated table and export to JSON
+   - **Schema Designer**: Design custom data schemas with 60+ data types
+   - **Data Generator**: Generate realistic fake data using pre-built templates or custom schemas
+   - **Generate**: Create new CSV files with sample data
+   - **Update**: Add rows to existing CSV files
 node scripts/generate.js <output-file-path> [rows]
 ```
 
@@ -423,6 +463,6 @@ ISC License
 
 For issues and questions, please create an issue on the [GitHub repository](https://github.com/snsinahub-org/csv-analyzer/issues).
 
----
+**Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, Faker.js, and NextAuth.js**
 
-**Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, and Faker.js**
+**Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, and Faker.js****Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, and Faker.js**

@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { Container, Card, Button } from 'react-bootstrap';
 import { Icon } from 'semantic-ui-react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Navigation from '../components/Navigation';
+import ConfigBanner from '../components/ConfigBanner';
 
 export default function Home() {
+  const { data: session } = useSession();
   const [stats] = useState({
     totalFiles: 0,
     lastAnalyzed: 'None',
@@ -20,21 +23,23 @@ export default function Home() {
       {/* Hero Section */}
       <div className="hero-section">
         <Container>
+          <ConfigBanner />
+          {session && (
+            <p className="mb-2 text-white-50">
+              <Icon name="user" /> Welcome back, {session.user?.name?.split(' ')[0] || 'User'}!
+            </p>
+          )}
           <h1 className="display-4 fw-bold mb-3">CSV Analyzer</h1>
           <p className="lead mb-4">
-            Powerful tools for analyzing, generating, and updating CSV files
+            Powerful tools for analyzing, generating, and updating CSV and JSON files
           </p>
           <div className="d-flex gap-3">
-            <Link href="/analyze" passHref legacyBehavior>
-              <Button variant="light" size="lg">
-                <Icon name="chart line" /> Start Analysis
-              </Button>
-            </Link>
-            <Link href="/generate" passHref legacyBehavior>
-              <Button variant="outline-light" size="lg">
-                <Icon name="file alternate" /> Generate CSV
-              </Button>
-            </Link>
+            <Button as={Link} href="/analyze" variant="light" size="lg">
+              <Icon name="chart line" /> Start Analysis
+            </Button>
+            <Button as={Link} href="/generate" variant="outline-light" size="lg">
+              <Icon name="file alternate" /> Generate CSV
+            </Button>
           </div>
         </Container>
       </div>
@@ -76,15 +81,13 @@ export default function Home() {
                 </div>
                 <Card.Title className="text-center">Analyze CSV</Card.Title>
                 <Card.Text>
-                  Upload and analyze CSV files to get detailed statistics, dynamic insights,
+                  Upload and analyze CSV or JSON files to get detailed statistics, dynamic insights,
                   field type detection, and interactive visualizations.
                 </Card.Text>
                 <div className="text-center">
-                  <Link href="/analyze" passHref legacyBehavior>
-                    <Button variant="primary">
-                      Analyze <Icon name="arrow right" />
-                    </Button>
-                  </Link>
+                  <Button as={Link} href="/analyze" variant="primary">
+                    Analyze <Icon name="arrow right" />
+                  </Button>
                 </div>
               </Card.Body>
             </Card>
@@ -98,15 +101,13 @@ export default function Home() {
                 </div>
                 <Card.Title className="text-center">Table View</Card.Title>
                 <Card.Text>
-                  View CSV data in a paginated table with sorting, filtering, inline editing,
-                  and export to JSON functionality.
+                  View CSV or JSON data in a paginated table with sorting, filtering, inline editing,
+                  and export to both CSV and JSON formats.
                 </Card.Text>
                 <div className="text-center">
-                  <Link href="/table-view" passHref legacyBehavior>
-                    <Button variant="info">
-                      View <Icon name="arrow right" />
-                    </Button>
-                  </Link>
+                  <Button as={Link} href="/table-view" variant="info">
+                    View <Icon name="arrow right" />
+                  </Button>
                 </div>
               </Card.Body>
             </Card>
@@ -121,14 +122,12 @@ export default function Home() {
                 <Card.Title className="text-center">Schema Designer</Card.Title>
                 <Card.Text>
                   Design custom data schemas from scratch, upload existing schemas (JSON),
-                  or auto-generate from CSV files. Export to CSV, JSON, or SQL.
+                  or auto-generate from CSV or JSON files. Export to CSV, JSON, or SQL.
                 </Card.Text>
                 <div className="text-center">
-                  <Link href="/schema-designer" passHref legacyBehavior>
-                    <Button variant="warning">
-                      Design <Icon name="arrow right" />
-                    </Button>
-                  </Link>
+                  <Button as={Link} href="/schema-designer" variant="warning">
+                    Design <Icon name="arrow right" />
+                  </Button>
                 </div>
               </Card.Body>
             </Card>
@@ -146,11 +145,9 @@ export default function Home() {
                   customers, products, employees, and sales transactions.
                 </Card.Text>
                 <div className="text-center">
-                  <Link href="/data-generator" passHref legacyBehavior>
-                    <Button variant="secondary">
-                      Generate <Icon name="arrow right" />
-                    </Button>
-                  </Link>
+                  <Button as={Link} href="/data-generator" variant="secondary">
+                    Generate <Icon name="arrow right" />
+                  </Button>
                 </div>
               </Card.Body>
             </Card>
@@ -164,15 +161,13 @@ export default function Home() {
                 </div>
                 <Card.Title className="text-center">Generate CSV</Card.Title>
                 <Card.Text>
-                  Create new CSV files with sample data. Perfect for testing, prototyping,
+                  Create new CSV or JSON files with sample data. Perfect for testing, prototyping,
                   or creating templates with customizable rows and columns.
                 </Card.Text>
                 <div className="text-center">
-                  <Link href="/generate" passHref legacyBehavior>
-                    <Button variant="success">
-                      Generate <Icon name="arrow right" />
-                    </Button>
-                  </Link>
+                  <Button as={Link} href="/generate" variant="success">
+                    Generate <Icon name="arrow right" />
+                  </Button>
                 </div>
               </Card.Body>
             </Card>
@@ -186,15 +181,13 @@ export default function Home() {
                 </div>
                 <Card.Title className="text-center">Update CSV</Card.Title>
                 <Card.Text>
-                  Modify existing CSV files by adding new rows, updating values,
-                  or combining multiple CSV files into one.
+                  Modify existing CSV or JSON files by adding new rows, updating values,
+                  or combining multiple files into one.
                 </Card.Text>
                 <div className="text-center">
-                  <Link href="/update" passHref legacyBehavior>
-                    <Button variant="warning">
-                      Update <Icon name="arrow right" />
-                    </Button>
-                  </Link>
+                  <Button as={Link} href="/update" variant="warning">
+                    Update <Icon name="arrow right" />
+                  </Button>
                 </div>
               </Card.Body>
             </Card>

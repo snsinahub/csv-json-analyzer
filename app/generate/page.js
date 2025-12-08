@@ -10,6 +10,7 @@ export default function GeneratePage() {
   const [rows, setRows] = useState(10);
   const [generatedData, setGeneratedData] = useState(null);
   const [error, setError] = useState(null);
+  const [exportFormat, setExportFormat] = useState('csv');
 
   const generateSampleData = (numRows) => {
     const data = [];
@@ -53,17 +54,31 @@ export default function GeneratePage() {
   const handleDownload = () => {
     if (!generatedData) return;
 
-    const csv = Papa.unparse(generatedData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `generated_${rows}_rows.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (exportFormat === 'json') {
+      const json = JSON.stringify(generatedData, null, 2);
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `generated_${rows}_rows.json`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      const csv = Papa.unparse(generatedData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `generated_${rows}_rows.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -71,12 +86,12 @@ export default function GeneratePage() {
       <Navigation />
       <Container className="py-5">
         <h1 className="mb-4">
-          <Icon name="plus circle" /> Generate CSV
+          <Icon name="plus circle" /> Generate Data
         </h1>
 
         <Card className="mb-4">
           <Card.Body>
-            <h5 className="mb-3">Generate Sample CSV Data</h5>
+            <h5 className="mb-3">Generate Sample Data</h5>
             
             <Form>
               <Form.Group className="mb-3">
@@ -100,7 +115,7 @@ export default function GeneratePage() {
                 </Alert>
               )}
 
-              <div className="d-flex gap-2">
+              <div className="d-flex gap-2 align-items-end flex-wrap">
                 <Button
                   variant="success"
                   onClick={handleGenerate}
@@ -110,12 +125,26 @@ export default function GeneratePage() {
                 </Button>
                 
                 {generatedData && (
-                  <Button
-                    variant="primary"
-                    onClick={handleDownload}
-                  >
-                    <Icon name="download" /> Download CSV
-                  </Button>
+                  <>
+                    <Form.Group className="mb-0">
+                      <Form.Label className="small mb-1">Export Format</Form.Label>
+                      <Form.Select
+                        size="sm"
+                        value={exportFormat}
+                        onChange={(e) => setExportFormat(e.target.value)}
+                        style={{ width: '120px' }}
+                      >
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                      </Form.Select>
+                    </Form.Group>
+                    <Button
+                      variant="primary"
+                      onClick={handleDownload}
+                    >
+                      <Icon name="download" /> Download {exportFormat.toUpperCase()}
+                    </Button>
+                  </>
                 )}
               </div>
             </Form>

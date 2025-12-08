@@ -8,6 +8,7 @@ import { Container } from 'react-bootstrap';
 import Navigation from '../../components/Navigation';
 import DataTable from '../../components/DataTable';
 import ExportModal from '../../components/ExportModal';
+import JSONViewer from '../../components/JSONViewer';
 import { inferColumnTypes } from '../../lib/dataValidation';
 import { downloadCSV, getExportFilename } from '../../lib/exportUtils';
 import { EditHistory, createCellEdit, applyEdit, reverseEdit, getEditedCells } from '../../lib/editHistory';
@@ -21,6 +22,7 @@ export default function TableViewPage() {
   const [editHistory] = useState(() => new EditHistory());
   const [editedCells, setEditedCells] = useState(new Set());
   const [dragActive, setDragActive] = useState(false);
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'json'
   
   const handleDrag = (e) => {
     e.preventDefault();
@@ -51,32 +53,99 @@ export default function TableViewPage() {
   const handleFile = (file) => {
     if (!file) return;
     
-    if (!file.name.endsWith('.csv')) {
-      toast.error('Please upload a CSV file');
+    const isJSON = file.name.endsWith('.json') || file.type === 'application/json';
+    const isCSV = file.name.endsWith('.csv') || file.type === 'text/csv';
+    
+    if (!isJSON && !isCSV) {
+      toast.error('Please upload a CSV or JSON file');
       return;
     }
     
     setFileName(file.name);
     
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        if (result.data && result.data.length > 0) {
-          setCsvData(result.data);
-          const types = inferColumnTypes(result.data);
+    if (isJSON) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          
+          // Normalize JSON to array format
+          let normalizedData;
+          if (Array.isArray(jsonData)) {
+            normalizedData = jsonData;
+          } else if (typeof jsonData === 'object' && jsonData !== null) {
+            if (jsonData.data && Array.isArray(jsonData.data)) {
+              normalizedData = jsonData.data;
+            } else {
+              normalizedData = [jsonData];
+            }
+          } else {
+            normalizedData = [];
+          }
+
+          if (normalizedData.length === 0) {
+            toast.error('No data found in JSON file');
+            return;
+          }
+
+          // Flatten nested JSON for table display
+          const flattenedData = normalizedData.map(item => {
+            const flatten = (obj, prefix = '') => {
+              const flattened = {};
+              for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                  const value = obj[key];
+                  const newKey = prefix ? `${prefix}.${key}` : key;
+                  
+                  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                    Object.assign(flattened, flatten(value, newKey));
+                  } else if (Array.isArray(value)) {
+                    flattened[newKey] = JSON.stringify(value);
+                  } else {
+                    flattened[newKey] = value;
+                  }
+                }
+              }
+              return flattened;
+            };
+            return flatten(item);
+          });
+
+          setCsvData(flattenedData);
+          const types = inferColumnTypes(flattenedData);
           setColumnTypes(types);
           editHistory.clear();
           setEditedCells(new Set());
-          toast.success(`Loaded ${result.data.length} rows from ${file.name}`);
-        } else {
-          toast.error('No data found in CSV file');
+          toast.success(`Loaded ${flattenedData.length} rows from ${file.name}`);
+        } catch (error) {
+          toast.error(`Error parsing JSON: ${error.message}`);
         }
-      },
-      error: (error) => {
-        toast.error(`Error parsing CSV: ${error.message}`);
-      }
-    });
+      };
+      reader.onerror = () => {
+        toast.error('Error reading JSON file');
+      };
+      reader.readAsText(file);
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (result) => {
+          if (result.data && result.data.length > 0) {
+            setCsvData(result.data);
+            const types = inferColumnTypes(result.data);
+            setColumnTypes(types);
+            editHistory.clear();
+            setEditedCells(new Set());
+            toast.success(`Loaded ${result.data.length} rows from ${file.name}`);
+          } else {
+            toast.error('No data found in CSV file');
+          }
+        },
+        error: (error) => {
+          toast.error(`Error parsing CSV: ${error.message}`);
+        }
+      });
+    }
   };
   
   const handleCellEdit = (rowIndex, column, newValue) => {
@@ -185,7 +254,7 @@ export default function TableViewPage() {
             <Icon name="table" /> Table View
           </h1>
           <p className="text-muted">
-            View, edit, and export CSV data in a tabular format
+            View, edit, and export CSV or JSON data in a tabular format
           </p>
         </div>
       </div>
@@ -202,15 +271,15 @@ export default function TableViewPage() {
             >
               <div className="card-body text-center py-5">
                 <Icon name="upload" size="huge" className="text-primary mb-3" />
-                <h3>Upload CSV File</h3>
+                <h3>Upload CSV or JSON File</h3>
                 <p className="text-muted">
-                  Drag and drop a CSV file here, or click to browse
+                  Drag and drop a CSV or JSON file here, or click to browse
                 </p>
                 <label className="btn btn-primary btn-lg">
-                  <Icon name="file" /> Choose CSV File
+                  <Icon name="file" /> Choose File
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.json"
                     onChange={handleFileUpload}
                     style={{ display: 'none' }}
                   />
@@ -233,7 +302,23 @@ export default function TableViewPage() {
                   </small>
                 </div>
                 
-                <div className="btn-group" role="group">
+                <div className="d-flex gap-2 flex-wrap">
+                  <div className="btn-group" role="group">
+                    <button 
+                      className={`btn ${viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      onClick={() => setViewMode('table')}
+                    >
+                      <Icon name="table" /> Table View
+                    </button>
+                    <button 
+                      className={`btn ${viewMode === 'json' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      onClick={() => setViewMode('json')}
+                    >
+                      <Icon name="code" /> JSON View
+                    </button>
+                  </div>
+                  
+                  <div className="btn-group" role="group">
                   <button 
                     className={`btn ${editMode ? 'btn-warning' : 'btn-outline-secondary'}`}
                     onClick={() => setEditMode(!editMode)}
@@ -270,6 +355,7 @@ export default function TableViewPage() {
                       style={{ display: 'none' }}
                     />
                   </label>
+                </div>
                 </div>
               </div>
               
@@ -329,13 +415,20 @@ export default function TableViewPage() {
           
           <div className="card">
             <div className="card-body">
-              <DataTable 
-                data={csvData}
-                editable={editMode}
-                onEdit={handleCellEdit}
-                columnTypes={columnTypes}
-                editedCells={editedCells}
-              />
+              {viewMode === 'table' ? (
+                <DataTable 
+                  data={csvData}
+                  editable={editMode}
+                  onEdit={handleCellEdit}
+                  columnTypes={columnTypes}
+                  editedCells={editedCells}
+                />
+              ) : (
+                <JSONViewer 
+                  data={csvData}
+                  onCopy={() => toast.success('JSON copied to clipboard!')}
+                />
+              )}
             </div>
           </div>
         </>
@@ -350,12 +443,6 @@ export default function TableViewPage() {
         />
       )}
       </Container>
-      
-      <footer className="bg-dark text-white text-center py-4 mt-5">
-        <Container>
-          <p className="mb-0">CSV Analyzer &copy; 2025 | Built with Next.js, React, Bootstrap & Semantic UI</p>
-        </Container>
-      </footer>
     </>
   );
 }

@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { Container, Card, Button, Table, Alert, Spinner } from 'react-bootstrap';
 import { Icon, Message } from 'semantic-ui-react';
+import { Toaster, toast } from 'react-hot-toast';
 import Navigation from '../../components/Navigation';
 import DynamicReport from '../../components/DynamicReport';
 import VisualizationPanel from '../../components/VisualizationPanel';
+import JSONViewer from '../../components/JSONViewer';
 import Papa from 'papaparse';
 import { generateDynamicReport } from '../../lib/csvAnalyzer';
 
@@ -17,14 +19,15 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showJSONView, setShowJSONView] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.type === 'text/csv') {
+    if (selectedFile && (selectedFile.type === 'text/csv' || selectedFile.type === 'application/json' || selectedFile.name.endsWith('.csv') || selectedFile.name.endsWith('.json'))) {
       setFile(selectedFile);
       setError(null);
     } else {
-      setError('Please select a valid CSV file');
+      setError('Please select a valid CSV or JSON file');
     }
   };
 
@@ -42,11 +45,11 @@ export default function AnalyzePage() {
     e.preventDefault();
     setDragOver(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type === 'text/csv') {
+    if (droppedFile && (droppedFile.type === 'text/csv' || droppedFile.type === 'application/json' || droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.json'))) {
       setFile(droppedFile);
       setError(null);
     } else {
-      setError('Please drop a valid CSV file');
+      setError('Please drop a valid CSV or JSON file');
     }
   };
 
@@ -103,40 +106,107 @@ export default function AnalyzePage() {
     setLoading(true);
     setError(null);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        // Store CSV data for visualizations
-        setCsvData(results.data);
-        
-        const analysisResult = analyzeCSV(results.data);
-        setAnalysis(analysisResult);
-        
-        // Generate dynamic report
-        const report = generateDynamicReport(results.data);
-        setDynamicReport(report);
-        
+    const isJSON = file.name.endsWith('.json') || file.type === 'application/json';
+
+    if (isJSON) {
+      // Parse JSON file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          
+          // Normalize JSON to array format
+          let normalizedData;
+          if (Array.isArray(jsonData)) {
+            normalizedData = jsonData;
+          } else if (typeof jsonData === 'object' && jsonData !== null) {
+            if (jsonData.data && Array.isArray(jsonData.data)) {
+              normalizedData = jsonData.data;
+            } else {
+              normalizedData = [jsonData];
+            }
+          } else {
+            normalizedData = [];
+          }
+
+          if (normalizedData.length === 0) {
+            setError('No data found in JSON file');
+            setLoading(false);
+            return;
+          }
+
+          // Flatten nested JSON objects for analysis
+          const flattenedData = normalizedData.map(item => {
+            const flatten = (obj, prefix = '') => {
+              const flattened = {};
+              for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                  const value = obj[key];
+                  const newKey = prefix ? `${prefix}.${key}` : key;
+                  
+                  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                    Object.assign(flattened, flatten(value, newKey));
+                  } else if (Array.isArray(value)) {
+                    flattened[newKey] = JSON.stringify(value);
+                  } else {
+                    flattened[newKey] = value;
+                  }
+                }
+              }
+              return flattened;
+            };
+            return flatten(item);
+          });
+
+          setCsvData(flattenedData);
+          const analysisResult = analyzeCSV(flattenedData);
+          setAnalysis(analysisResult);
+          const report = generateDynamicReport(flattenedData);
+          setDynamicReport(report);
+          setLoading(false);
+        } catch (error) {
+          setError('Error parsing JSON: ' + error.message);
+          setLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setError('Error reading JSON file');
         setLoading(false);
-      },
-      error: (error) => {
-        setError('Error parsing CSV: ' + error.message);
-        setLoading(false);
-      }
-    });
+      };
+      reader.readAsText(file);
+    } else {
+      // Parse CSV file
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          setCsvData(results.data);
+          const analysisResult = analyzeCSV(results.data);
+          setAnalysis(analysisResult);
+          const report = generateDynamicReport(results.data);
+          setDynamicReport(report);
+          setLoading(false);
+        },
+        error: (error) => {
+          setError('Error parsing CSV: ' + error.message);
+          setLoading(false);
+        }
+      });
+    }
   };
 
   return (
     <>
       <Navigation />
       <Container className="py-5">
+        <Toaster position="top-right" />
         <h1 className="mb-4">
-          <Icon name="chart line" /> Analyze CSV
+          <Icon name="chart line" /> Analyze Data
         </h1>
 
         <Card className="mb-4">
           <Card.Body>
-            <h5 className="mb-3">Upload CSV File</h5>
+            <h5 className="mb-3">Upload CSV or JSON File</h5>
             
             <div
               className={`upload-zone ${dragOver ? 'dragover' : ''}`}
@@ -147,15 +217,15 @@ export default function AnalyzePage() {
             >
               <Icon name="cloud upload" size="huge" color="grey" />
               <h4 className="mt-3">
-                {file ? file.name : 'Drop CSV file here or click to browse'}
+                {file ? file.name : 'Drop CSV or JSON file here or click to browse'}
               </h4>
               <p className="text-muted">
-                {file ? `Size: ${(file.size / 1024).toFixed(2)} KB` : 'Supports .csv files'}
+                {file ? `Size: ${(file.size / 1024).toFixed(2)} KB` : 'Supports .csv and .json files'}
               </p>
               <input
                 id="fileInput"
                 type="file"
-                accept=".csv"
+                accept=".csv,.json"
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
               />
@@ -192,10 +262,17 @@ export default function AnalyzePage() {
         {analysis && !analysis.error && (
           <>
             <Card className="mb-4">
-              <Card.Header>
+              <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">
                   <Icon name="info circle" /> General Information
                 </h5>
+                <Button 
+                  variant={showJSONView ? 'primary' : 'outline-secondary'}
+                  size="sm"
+                  onClick={() => setShowJSONView(!showJSONView)}
+                >
+                  <Icon name="code" /> {showJSONView ? 'Hide' : 'View'} Raw JSON
+                </Button>
               </Card.Header>
               <Card.Body>
                 <div className="row">
@@ -266,6 +343,18 @@ export default function AnalyzePage() {
                 </div>
               </Card.Body>
             </Card>
+            
+            {/* JSON Data View */}
+            {showJSONView && csvData && (
+              <Card className="mb-4">
+                <Card.Body>
+                  <JSONViewer 
+                    data={csvData}
+                    onCopy={() => toast.success('JSON copied to clipboard!')}
+                  />
+                </Card.Body>
+              </Card>
+            )}
           </>
         )}
 

@@ -33,6 +33,7 @@ export default function SchemaDesignerPage() {
   });
   const [dragActiveCSV, setDragActiveCSV] = useState(false);
   const [dragActiveJSON, setDragActiveJSON] = useState(false);
+  const [locale, setLocale] = useState('en');
   
   const templates = getTemplatesList();
   
@@ -162,13 +163,62 @@ export default function SchemaDesignerPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const schemaData = JSON.parse(event.target.result);
-        setSchema(schemaData);
-        setSchemaSource('upload');
-        setShowTemplates(false);
-        toast.success('Schema loaded from JSON');
+        const jsonData = JSON.parse(event.target.result);
+        
+        // Check if it's a schema file (has name and columns properties) or data file
+        if (jsonData.name && jsonData.columns && Array.isArray(jsonData.columns)) {
+          // It's a schema file
+          setSchema(jsonData);
+          setSchemaSource('upload');
+          setShowTemplates(false);
+          toast.success('Schema loaded from JSON');
+        } else {
+          // It's a data file - infer schema from it
+          let normalizedData;
+          if (Array.isArray(jsonData)) {
+            normalizedData = jsonData;
+          } else if (jsonData.data && Array.isArray(jsonData.data)) {
+            normalizedData = jsonData.data;
+          } else {
+            normalizedData = [jsonData];
+          }
+          
+          if (normalizedData.length === 0) {
+            toast.error('No data found in JSON file');
+            return;
+          }
+          
+          // Flatten nested JSON for schema inference
+          const flattenedData = normalizedData.map(item => {
+            const flatten = (obj, prefix = '') => {
+              const flattened = {};
+              for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                  const value = obj[key];
+                  const newKey = prefix ? `${prefix}.${key}` : key;
+                  
+                  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                    Object.assign(flattened, flatten(value, newKey));
+                  } else if (Array.isArray(value)) {
+                    flattened[newKey] = JSON.stringify(value);
+                  } else {
+                    flattened[newKey] = value;
+                  }
+                }
+              }
+              return flattened;
+            };
+            return flatten(item);
+          });
+          
+          const inferredSchema = inferSchemaFromCSV(flattenedData);
+          setSchema(inferredSchema);
+          setSchemaSource('json');
+          setShowTemplates(false);
+          toast.success(`Schema generated from ${file.name}`);
+        }
       } catch (error) {
-        toast.error(`Failed to load schema: ${error.message}`);
+        toast.error(`Failed to load JSON: ${error.message}`);
       }
     };
     reader.readAsText(file);
@@ -269,7 +319,7 @@ export default function SchemaDesignerPage() {
   };
   
   const handlePreview = () => {
-    if (schema.columns.length === 0) {
+    if (!schema?.columns || schema.columns.length === 0) {
       toast.error('Add at least one column to preview');
       return;
     }
@@ -285,7 +335,7 @@ export default function SchemaDesignerPage() {
   };
   
   const handleGenerate = () => {
-    if (schema.columns.length === 0) {
+    if (!schema?.columns || schema.columns.length === 0) {
       toast.error('Add at least one column to generate data');
       return;
     }
@@ -355,7 +405,7 @@ export default function SchemaDesignerPage() {
     
     if (includeCreate) {
       sql += `CREATE TABLE ${tableName} (\n`;
-      const columnDefs = schema.columns.map((col, idx) => {
+      const columnDefs = (schema?.columns || []).map((col, idx) => {
         const sqlType = mapToSQLType(col.type, col.config, dbType);
         const isPK = idx === 0 && col.type === 'sequential';
         return `  ${col.name} ${sqlType}${isPK ? ' PRIMARY KEY' : ''}`;
@@ -365,7 +415,7 @@ export default function SchemaDesignerPage() {
     }
     
     // Generate INSERT statements
-    const columns = schema.columns.map(c => c.name);
+    const columns = (schema?.columns || []).map(c => c.name);
     sql += `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES\n`;
     
     const values = data.map((row, idx) => {
@@ -453,7 +503,7 @@ export default function SchemaDesignerPage() {
   };
   
   const handleSaveSchema = () => {
-    if (schema.columns.length === 0) {
+    if (!schema?.columns || schema.columns.length === 0) {
       toast.error('Cannot save empty schema');
       return;
     }
@@ -491,7 +541,7 @@ export default function SchemaDesignerPage() {
   };
   
   const handleSaveTemplate = () => {
-    if (schema.columns.length === 0) {
+    if (!schema?.columns || schema.columns.length === 0) {
       toast.error('Add at least one column to save template');
       return;
     }
@@ -567,9 +617,9 @@ export default function SchemaDesignerPage() {
                 <div className="card h-100 shadow-sm">
                   <div className="card-body text-center">
                     <Icon name="upload" size="huge" className="text-success mb-3" />
-                    <h5 className="card-title">Upload Schema</h5>
+                    <h5 className="card-title">Upload Schema or Data</h5>
                     <p className="card-text text-muted">
-                      Import an existing schema from JSON file.
+                      Import an existing schema from JSON file, or generate schema from JSON data.
                     </p>
                   </div>
                   <div className="card-footer bg-transparent">
@@ -647,7 +697,7 @@ export default function SchemaDesignerPage() {
                   <button 
                     className="btn btn-outline-success"
                     onClick={handleSaveSchema}
-                    disabled={schema.columns.length === 0}
+                    disabled={!schema?.columns || schema.columns.length === 0}
                     title="Save this schema to use in Data Generator"
                   >
                     <Icon name="star" /> Save for Data Generator
@@ -655,7 +705,7 @@ export default function SchemaDesignerPage() {
                   <button 
                     className="btn btn-outline-primary"
                     onClick={handleSaveTemplate}
-                    disabled={schema.columns.length === 0}
+                    disabled={!schema?.columns || schema.columns.length === 0}
                   >
                     <Icon name="save" /> Save Template
                   </button>
@@ -772,14 +822,14 @@ export default function SchemaDesignerPage() {
                     <button 
                       className="btn btn-outline-primary"
                       onClick={handlePreview}
-                      disabled={schema.columns.length === 0}
+                      disabled={!schema?.columns || schema.columns.length === 0}
                     >
                       <Icon name="eye" /> Preview
                     </button>
                     <button 
                       className="btn btn-primary"
                       onClick={handleGenerate}
-                      disabled={schema.columns.length === 0}
+                      disabled={!schema?.columns || schema.columns.length === 0}
                     >
                       <Icon name="magic" /> Generate
                     </button>

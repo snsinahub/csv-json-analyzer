@@ -7,7 +7,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check-auth": "node scripts/check-auth-setup.js",
+    "setup-auth": "./scripts/setup-auth.sh",
+    "setup-oauth": "node scripts/setup-oauth.js",
+    "check-config": "curl http://localhost:3000/api/config/status"
   },
   "repository": {
     "type": "git",
@@ -28,6 +32,7 @@
     "file-saver": "^2.0.5",
     "multer": "^2.0.2",
     "next": "^16.0.7",
+    "next-auth": "^4.24.13",
     "papaparse": "^5.5.3",
     "react": "^18.3.1",
     "react-bootstrap": "^2.10.10",

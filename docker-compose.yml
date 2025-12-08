@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  csv-analyzer:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # OAuth Configuration
+      - GITHUB_ID=${GITHUB_ID}
+      - GITHUB_SECRET=${GITHUB_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      
+      # Optional: Encryption key for config file
+      - AUTH_ENCRYPTION_KEY=${AUTH_ENCRYPTION_KEY}
+      
+      # Optional: Admin token for setup API
+      - ADMIN_SETUP_TOKEN=${ADMIN_SETUP_TOKEN}
+    
+    # Optional: Mount data directory for persistent CSV files
+    volumes:
+      - ./data:/app/data
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/config/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Optional: Add a reverse proxy (nginx) for production
+#   nginx:
+#     image: nginx:alpine
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#     depends_on:
+#       - csv-analyzer

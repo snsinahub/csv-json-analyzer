@@ -6,6 +6,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { Container } from 'react-bootstrap';
 import Navigation from '../../components/Navigation';
 import DataTable from '../../components/DataTable';
+import SchemaDesignWidget from '../../components/SchemaDesignWidget';
 import { generateData, getTemplatesList, getTemplate } from '../../lib/schemaGenerator';
 import { downloadCSV, downloadJSON } from '../../lib/exportUtils';
 import { saveAs } from 'file-saver';
@@ -14,6 +15,8 @@ export default function DataGeneratorPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [customSchemas, setCustomSchemas] = useState([]);
   const [showCustomSchemas, setShowCustomSchemas] = useState(false);
+  const [mode, setMode] = useState('template'); // 'template', 'custom', 'design'
+  const [customSchema, setCustomSchema] = useState({ name: 'Custom Schema', columns: [] });
   const [rowCount, setRowCount] = useState(100);
   const [useSeed, setUseSeed] = useState(false);
   const [seed, setSeed] = useState('12345');
@@ -45,6 +48,7 @@ export default function DataGeneratorPage() {
   const handleSelectTemplate = (templateId) => {
     const template = getTemplate(templateId);
     setSelectedTemplate(template);
+    setMode('template');
     setPreviewData(null);
     setGeneratedData(null);
     toast.success(`Template loaded: ${template.name}`);
@@ -52,6 +56,7 @@ export default function DataGeneratorPage() {
   
   const handleSelectCustomSchema = (schema) => {
     setSelectedTemplate(schema);
+    setMode('custom');
     setPreviewData(null);
     setGeneratedData(null);
     toast.success(`Custom schema loaded: ${schema.name}`);
@@ -64,19 +69,32 @@ export default function DataGeneratorPage() {
     toast.success('Schema deleted');
   };
   
+  const reloadCustomSchemas = () => {
+    const saved = localStorage.getItem('customSchemas');
+    if (saved) {
+      try {
+        setCustomSchemas(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to load custom schemas:', error);
+      }
+    }
+  };
+  
   const handleRandomSeed = () => {
     setSeed(Math.floor(Math.random() * 1000000).toString());
   };
   
   const handlePreview = () => {
-    if (!selectedTemplate) {
-      toast.error('Please select a template first');
+    const currentSchema = mode === 'design' ? customSchema : selectedTemplate;
+    
+    if (!currentSchema || (currentSchema.columns && currentSchema.columns.length === 0)) {
+      toast.error('Please select a template or design a schema first');
       return;
     }
     
     try {
       const data = generateData(
-        selectedTemplate, 
+        currentSchema, 
         20, 
         useSeed ? parseInt(seed) : undefined,
         locale
@@ -89,8 +107,10 @@ export default function DataGeneratorPage() {
   };
   
   const handleGenerate = () => {
-    if (!selectedTemplate) {
-      toast.error('Please select a template first');
+    const currentSchema = mode === 'design' ? customSchema : selectedTemplate;
+    
+    if (!currentSchema || (currentSchema.columns && currentSchema.columns.length === 0)) {
+      toast.error('Please select a template or design a schema first');
       return;
     }
     
@@ -101,7 +121,7 @@ export default function DataGeneratorPage() {
     
     try {
       const data = generateData(
-        selectedTemplate, 
+        currentSchema, 
         rowCount, 
         useSeed ? parseInt(seed) : undefined,
         locale
@@ -270,31 +290,53 @@ export default function DataGeneratorPage() {
         <div className="mb-4">
           <h1><Icon name="magic" /> Data Generator</h1>
           <p className="text-muted">
-            Generate realistic fake data using pre-built templates. Perfect for testing and development.
+            Generate realistic fake data using pre-built templates, saved schemas, or design your own.
           </p>
         </div>
         
-        {/* Template Selection */}
+        {/* Mode Selection */}
         <div className="card mb-4">
-          <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <span><Icon name="list" /> Select a Template or Custom Schema</span>
-            <div className="btn-group btn-group-sm" role="group">
+          <div className="card-header bg-dark text-white">
+            <div className="btn-group w-100" role="group">
               <button 
-                className={`btn ${!showCustomSchemas ? 'btn-light' : 'btn-outline-light'}`}
-                onClick={() => setShowCustomSchemas(false)}
+                className={`btn ${mode === 'template' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setMode('template')}
               >
                 <Icon name="file" /> Templates
               </button>
               <button 
-                className={`btn ${showCustomSchemas ? 'btn-light' : 'btn-outline-light'}`}
-                onClick={() => setShowCustomSchemas(true)}
+                className={`btn ${mode === 'custom' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setMode('custom')}
               >
                 <Icon name="star" /> My Schemas ({customSchemas.length})
               </button>
+              <button 
+                className={`btn ${mode === 'design' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setMode('design')}
+              >
+                <Icon name="pencil" /> Design Schema
+              </button>
             </div>
           </div>
-          <div className="card-body">
-            {!showCustomSchemas ? (
+        </div>
+        
+        {/* Schema Design Widget - shown when in design mode */}
+        {mode === 'design' && (
+          <SchemaDesignWidget
+            schema={customSchema}
+            onSchemaChange={setCustomSchema}
+            showSaveButton={true}
+            onSave={reloadCustomSchemas}
+          />
+        )}
+        
+        {/* Template Selection */}
+        {mode === 'template' && (
+          <div className="card mb-4">
+            <div className="card-header bg-primary text-white">
+              <Icon name="file" /> Select a Template
+            </div>
+            <div className="card-body">
               <div className="row g-3">
                 {templates.map(template => (
                   <div key={template.id} className="col-md-4 col-lg-3">
@@ -323,61 +365,75 @@ export default function DataGeneratorPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Custom Schemas Selection */}
+        {mode === 'custom' && (
+          <div className="card mb-4">
+            <div className="card-header bg-success text-white d-flex justify-content-between align-items-center">
+              <span><Icon name="star" /> My Saved Schemas</span>
+              <button 
+                className="btn btn-light btn-sm"
+                onClick={reloadCustomSchemas}
+              >
+                <Icon name="refresh" /> Reload
+              </button>
+            </div>
+            <div className="card-body">
+            {customSchemas.length === 0 ? (
+              <div className="alert alert-info">
+                <Icon name="info circle" /> No custom schemas saved yet. Use "Design Schema" mode to create and save schemas.
+              </div>
             ) : (
               <div className="row g-3">
-                {customSchemas.length === 0 ? (
-                  <div className="col-12">
-                    <div className="alert alert-info">
-                      <Icon name="info circle" /> No custom schemas saved yet. Create and save schemas in the Schema Designer to use them here.
-                    </div>
-                  </div>
-                ) : (
-                  customSchemas.map((schema, idx) => (
-                    <div key={idx} className="col-md-4 col-lg-3">
+                {customSchemas.map((schema, idx) => (
+                  <div key={idx} className="col-md-4 col-lg-3">
+                    <div 
+                      className={`card h-100 shadow-sm ${selectedTemplate?.name === schema.name ? 'border-success' : ''}`}
+                    >
                       <div 
-                        className={`card h-100 shadow-sm ${selectedTemplate?.name === schema.name ? 'border-success' : ''}`}
+                        className="card-body" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleSelectCustomSchema(schema)}
                       >
-                        <div 
-                          className="card-body" 
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleSelectCustomSchema(schema)}
+                        <h5 className="card-title">
+                          <Icon name="star" className="text-warning" /> {schema.name}
+                        </h5>
+                        <p className="text-muted small mb-0">
+                          <Icon name="columns" /> {schema.columns?.length || 0} columns
+                        </p>
+                      </div>
+                      <div className="card-footer bg-transparent d-flex justify-content-between">
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Delete schema "${schema.name}"?`)) {
+                              handleDeleteCustomSchema(schema.name);
+                            }
+                          }}
                         >
-                          <h5 className="card-title">
-                            <Icon name="star" className="text-warning" /> {schema.name}
-                          </h5>
-                          <p className="text-muted small mb-0">
-                            <Icon name="columns" /> {schema.columns?.length || 0} columns
-                          </p>
-                        </div>
-                        <div className="card-footer bg-transparent d-flex justify-content-between">
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm(`Delete schema "${schema.name}"?`)) {
-                                handleDeleteCustomSchema(schema.name);
-                              }
-                            }}
-                          >
-                            <Icon name="trash" /> Delete
-                          </button>
-                          {selectedTemplate?.name === schema.name && (
-                            <span className="badge bg-success align-self-center">
-                              <Icon name="check" /> Selected
-                            </span>
-                          )}
-                        </div>
+                          <Icon name="trash" /> Delete
+                        </button>
+                        {selectedTemplate?.name === schema.name && (
+                          <span className="badge bg-success align-self-center">
+                            <Icon name="check" /> Selected
+                          </span>
+                        )}
                       </div>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
             )}
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Template Details */}
-        {selectedTemplate && (
+        {(mode === 'template' || mode === 'custom') && selectedTemplate && (
           <div className="card mb-4">
             <div className="card-header bg-info text-white">
               <Icon name="info circle" /> Template Details: {selectedTemplate.name}

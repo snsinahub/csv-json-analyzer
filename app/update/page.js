@@ -17,12 +17,12 @@ export default function UpdatePage() {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.type === 'text/csv') {
+    if (selectedFile && (selectedFile.type === 'text/csv' || selectedFile.type === 'application/json' || selectedFile.name.endsWith('.csv') || selectedFile.name.endsWith('.json'))) {
       setFile(selectedFile);
       setError(null);
       parseFile(selectedFile);
     } else {
-      setError('Please select a valid CSV file');
+      setError('Please select a valid CSV or JSON file');
     }
   };
 
@@ -40,30 +40,86 @@ export default function UpdatePage() {
     e.preventDefault();
     setDragOver(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type === 'text/csv') {
+    if (droppedFile && (droppedFile.type === 'text/csv' || droppedFile.type === 'application/json' || droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.json'))) {
       setFile(droppedFile);
       setError(null);
       parseFile(droppedFile);
     } else {
-      setError('Please drop a valid CSV file');
+      setError('Please drop a valid CSV or JSON file');
     }
   };
 
   const parseFile = (file) => {
     setLoading(true);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        setOriginalData(results.data);
-        setUpdatedData(null);
+    
+    const isJSON = file.name.endsWith('.json') || file.type === 'application/json';
+    
+    if (isJSON) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          
+          let normalizedData;
+          if (Array.isArray(jsonData)) {
+            normalizedData = jsonData;
+          } else if (jsonData.data && Array.isArray(jsonData.data)) {
+            normalizedData = jsonData.data;
+          } else {
+            normalizedData = [jsonData];
+          }
+          
+          // Flatten nested JSON
+          const flattenedData = normalizedData.map(item => {
+            const flatten = (obj, prefix = '') => {
+              const flattened = {};
+              for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                  const value = obj[key];
+                  const newKey = prefix ? `${prefix}.${key}` : key;
+                  
+                  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                    Object.assign(flattened, flatten(value, newKey));
+                  } else if (Array.isArray(value)) {
+                    flattened[newKey] = JSON.stringify(value);
+                  } else {
+                    flattened[newKey] = value;
+                  }
+                }
+              }
+              return flattened;
+            };
+            return flatten(item);
+          });
+          
+          setOriginalData(flattenedData);
+          setUpdatedData(null);
+          setLoading(false);
+        } catch (error) {
+          setError('Error parsing JSON: ' + error.message);
+          setLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setError('Error reading JSON file');
         setLoading(false);
-      },
-      error: (error) => {
-        setError('Error parsing CSV: ' + error.message);
-        setLoading(false);
-      }
-    });
+      };
+      reader.readAsText(file);
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          setOriginalData(results.data);
+          setUpdatedData(null);
+          setLoading(false);
+        },
+        error: (error) => {
+          setError('Error parsing CSV: ' + error.message);
+          setLoading(false);
+        }
+      });
+    }
   };
 
   const generateNewRow = (existingData) => {
@@ -98,7 +154,7 @@ export default function UpdatePage() {
 
   const handleUpdate = () => {
     if (!originalData) {
-      setError('Please upload a CSV file first');
+      setError('Please upload a file first');
       return;
     }
 
@@ -123,18 +179,34 @@ export default function UpdatePage() {
   const handleDownload = () => {
     if (!updatedData) return;
 
-    const csv = Papa.unparse(updatedData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+    const isJSON = file.name.endsWith('.json');
+    const originalName = file.name.replace(/\.(csv|json)$/, '');
     
-    const originalName = file.name.replace('.csv', '');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${originalName}_updated.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (isJSON) {
+      const json = JSON.stringify(updatedData, null, 2);
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${originalName}_updated.json`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      const csv = Papa.unparse(updatedData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${originalName}_updated.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -142,12 +214,12 @@ export default function UpdatePage() {
       <Navigation />
       <Container className="py-5">
         <h1 className="mb-4">
-          <Icon name="edit" /> Update CSV
+          <Icon name="edit" /> Update Data
         </h1>
 
         <Card className="mb-4">
           <Card.Body>
-            <h5 className="mb-3">Upload CSV File to Update</h5>
+            <h5 className="mb-3">Upload CSV or JSON File</h5>
             
             <div
               className={`upload-zone ${dragOver ? 'dragover' : ''}`}
@@ -158,15 +230,15 @@ export default function UpdatePage() {
             >
               <Icon name="cloud upload" size="huge" color="grey" />
               <h4 className="mt-3">
-                {file ? file.name : 'Drop CSV file here or click to browse'}
+                {file ? file.name : 'Drop CSV or JSON file here or click to browse'}
               </h4>
               <p className="text-muted">
-                {file ? `Size: ${(file.size / 1024).toFixed(2)} KB` : 'Supports .csv files'}
+                {file ? `Size: ${(file.size / 1024).toFixed(2)} KB` : 'Supports .csv and .json files'}
               </p>
               <input
                 id="fileInput"
                 type="file"
-                accept=".csv"
+                accept=".csv,.json"
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
               />
