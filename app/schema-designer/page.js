@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from 'semantic-ui-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { Container } from 'react-bootstrap';
@@ -11,6 +11,7 @@ import SchemaBuilder from '../../components/SchemaBuilder';
 import DataTable from '../../components/DataTable';
 import { generateData, getTemplatesList, getTemplate } from '../../lib/schemaGenerator';
 import { downloadCSV, downloadJSON } from '../../lib/exportUtils';
+import { storeSchema, storeGeneratedData, storeAnalysisLog, getStoredSchemas } from '../../lib/duckdbLogger';
 
 export default function SchemaDesignerPage() {
   const [schema, setSchema] = useState({
@@ -23,7 +24,7 @@ export default function SchemaDesignerPage() {
   const [previewData, setPreviewData] = useState(null);
   const [showTemplates, setShowTemplates] = useState(true);
   const [generatedData, setGeneratedData] = useState(null);
-  const [schemaSource, setSchemaSource] = useState(null); // 'scratch', 'upload', 'csv'
+  const [schemaSource, setSchemaSource] = useState(null); // 'scratch', 'upload', 'csv', 'duckdb'
   const [exportFormat, setExportFormat] = useState('csv'); // 'csv', 'json', 'sql'
   const [sqlOptions, setSqlOptions] = useState({
     tableName: 'generated_data',
@@ -34,8 +35,68 @@ export default function SchemaDesignerPage() {
   const [dragActiveCSV, setDragActiveCSV] = useState(false);
   const [dragActiveJSON, setDragActiveJSON] = useState(false);
   const [locale, setLocale] = useState('en');
+  const [saveToDuckDB, setSaveToDuckDB] = useState(false);
+  const [savedSchemas, setSavedSchemas] = useState([]);
+  const [showSavedSchemas, setShowSavedSchemas] = useState(false);
+  const [loadingSchemas, setLoadingSchemas] = useState(false);
   
   const templates = getTemplatesList();
+
+  // Load saved schemas from DuckDB on mount
+  useEffect(() => {
+    loadSavedSchemas();
+  }, []);
+
+  const loadSavedSchemas = async () => {
+    setLoadingSchemas(true);
+    try {
+      const schemas = await getStoredSchemas();
+      setSavedSchemas(schemas);
+    } catch (error) {
+      console.error('Failed to load schemas:', error);
+    } finally {
+      setLoadingSchemas(false);
+    }
+  };
+
+  const handleLoadSchemaFromDuckDB = async (savedSchema) => {
+    try {
+      const schemaData = JSON.parse(savedSchema.schema_json);
+      setSchema(schemaData);
+      setSchemaSource('duckdb');
+      setShowTemplates(false);
+      setShowSavedSchemas(false);
+      toast.success(`Schema "${savedSchema.schema_name}" loaded from DuckDB!`);
+    } catch (error) {
+      toast.error(`Failed to load schema: ${error.message}`);
+    }
+  };
+
+  const handleDeleteSavedSchema = async (schemaId, schemaName) => {
+    if (!confirm(`Are you sure you want to delete schema "${schemaName}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/duckdb/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: `DELETE FROM schemas WHERE id = ${schemaId}` 
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Schema "${schemaName}" deleted`);
+        loadSavedSchemas(); // Reload the list
+      } else {
+        toast.error('Failed to delete schema');
+      }
+    } catch (error) {
+      toast.error(`Failed to delete schema: ${error.message}`);
+    }
+  };
   
   const handleStartFromScratch = () => {
     setSchema({ name: 'Custom Schema', columns: [] });
@@ -346,12 +407,80 @@ export default function SchemaDesignerPage() {
     }
     
     try {
+      const startTime = Date.now();
       const seedValue = useSeed && seed ? parseInt(seed) : null;
       const data = generateData(schema, rowCount, seedValue);
       setGeneratedData(data);
+      const processingTime = Date.now() - startTime;
+      
       toast.success(`Generated ${data.length} rows!`);
+      
+      // Log data generation
+      storeAnalysisLog({
+        type: 'data_generation',
+        page: 'schema-designer',
+        filename: schema.name,
+        rowCount: data.length,
+        columnCount: schema.columns.length,
+        processingTime,
+        status: 'success',
+        metadata: { 
+          schemaSource,
+          useSeed,
+          locale
+        }
+      });
     } catch (error) {
       toast.error(`Generation failed: ${error.message}`);
+      
+      // Log error
+      storeAnalysisLog({
+        type: 'data_generation',
+        page: 'schema-designer',
+        filename: schema.name,
+        status: 'error',
+        error: error.message,
+        metadata: { schemaSource }
+      });
+    }
+  };
+
+  const handleSaveSchema = async () => {
+    if (!schema?.columns || schema.columns.length === 0) {
+      toast.error('Add at least one column before saving schema');
+      return;
+    }
+
+    try {
+      const result = await storeSchema(schema, schema.name, 'schema-designer');
+      if (result.success) {
+        toast.success(`Schema "${schema.name}" saved to DuckDB!`);
+        loadSavedSchemas(); // Refresh the saved schemas list
+      } else {
+        toast.error(`Failed to save schema: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to save schema: ${error.message}`);
+    }
+  };
+
+  const handleSaveDataToDuckDB = async () => {
+    if (!generatedData || generatedData.length === 0) {
+      toast.error('No data to save. Generate data first.');
+      return;
+    }
+
+    try {
+      const tableName = schema.name.toLowerCase().replace(/\s+/g, '_');
+      const result = await storeGeneratedData(generatedData, tableName, 'schema-designer');
+      
+      if (result.success) {
+        toast.success(`Saved ${result.stats.rowCount} rows to DuckDB table: ${result.stats.tableName}`);
+      } else {
+        toast.error(`Failed to save to DuckDB: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to save to DuckDB: ${error.message}`);
     }
   };
   
@@ -502,44 +631,6 @@ export default function SchemaDesignerPage() {
     return typeMap[dbType]?.[type] || 'VARCHAR(255)';
   };
   
-  const handleSaveSchema = () => {
-    if (!schema?.columns || schema.columns.length === 0) {
-      toast.error('Cannot save empty schema');
-      return;
-    }
-    
-    if (!schema.name || schema.name.trim() === '') {
-      toast.error('Please provide a schema name');
-      return;
-    }
-    
-    try {
-      // Load existing custom schemas
-      const saved = localStorage.getItem('customSchemas');
-      let customSchemas = [];
-      if (saved) {
-        customSchemas = JSON.parse(saved);
-      }
-      
-      // Check if schema with same name exists
-      const existingIndex = customSchemas.findIndex(s => s.name === schema.name);
-      if (existingIndex >= 0) {
-        if (!confirm(`Schema "${schema.name}" already exists. Overwrite?`)) {
-          return;
-        }
-        customSchemas[existingIndex] = schema;
-      } else {
-        customSchemas.push(schema);
-      }
-      
-      // Save to localStorage
-      localStorage.setItem('customSchemas', JSON.stringify(customSchemas));
-      toast.success(`Schema "${schema.name}" saved! You can now use it in the Data Generator.`);
-    } catch (error) {
-      toast.error(`Failed to save schema: ${error.message}`);
-    }
-  };
-  
   const handleSaveTemplate = () => {
     if (!schema?.columns || schema.columns.length === 0) {
       toast.error('Add at least one column to save template');
@@ -593,7 +684,7 @@ export default function SchemaDesignerPage() {
           </div>
           <div className="card-body">
             <div className="row g-4">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <div className="card h-100 shadow-sm">
                   <div className="card-body text-center">
                     <Icon name="pencil" size="huge" className="text-primary mb-3" />
@@ -612,8 +703,31 @@ export default function SchemaDesignerPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="col-md-3">
+                <div className="card h-100 shadow-sm">
+                  <div className="card-body text-center">
+                    <Icon name="database" size="huge" className="text-warning mb-3" />
+                    <h5 className="card-title">Load from DuckDB</h5>
+                    <p className="card-text text-muted">
+                      Load a previously saved schema from the database.
+                    </p>
+                  </div>
+                  <div className="card-footer bg-transparent">
+                    <button 
+                      className="btn btn-warning w-100"
+                      onClick={() => {
+                        setShowSavedSchemas(true);
+                        loadSavedSchemas();
+                      }}
+                    >
+                      <Icon name="folder open" /> Browse Saved Schemas
+                    </button>
+                  </div>
+                </div>
+              </div>
               
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <div className="card h-100 shadow-sm">
                   <div className="card-body text-center">
                     <Icon name="upload" size="huge" className="text-success mb-3" />
@@ -647,7 +761,7 @@ export default function SchemaDesignerPage() {
                 </div>
               </div>
               
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <div className="card h-100 shadow-sm">
                   <div className="card-body text-center">
                     <Icon name="table" size="huge" className="text-info mb-3" />
@@ -680,6 +794,79 @@ export default function SchemaDesignerPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saved Schemas Modal */}
+      {showSavedSchemas && (
+        <div className="card mb-4">
+          <div className="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <span><Icon name="database" /> Saved Schemas from DuckDB</span>
+            <button 
+              className="btn btn-sm btn-dark"
+              onClick={() => setShowSavedSchemas(false)}
+            >
+              <Icon name="times" /> Close
+            </button>
+          </div>
+          <div className="card-body">
+            {loadingSchemas ? (
+              <div className="text-center py-4">
+                <Icon name="spinner" loading size="large" />
+                <p className="text-muted mt-2">Loading schemas...</p>
+              </div>
+            ) : savedSchemas.length === 0 ? (
+              <div className="alert alert-info">
+                <Icon name="info circle" /> No saved schemas found. Create and save a schema to see it here.
+              </div>
+            ) : (
+              <div className="row g-3">
+                {savedSchemas.map((savedSchema) => (
+                  <div key={savedSchema.id} className="col-md-4">
+                    <div className="card shadow-sm">
+                      <div className="card-body">
+                        <h6 className="card-title">
+                          <Icon name="file code" /> {savedSchema.schema_name}
+                        </h6>
+                        <p className="card-text">
+                          <small className="text-muted">
+                            <Icon name="list" /> {savedSchema.field_count} fields<br />
+                            <Icon name="calendar" /> {new Date(savedSchema.created_at).toLocaleDateString()}<br />
+                            <Icon name="tag" /> Source: {savedSchema.source}
+                          </small>
+                        </p>
+                      </div>
+                      <div className="card-footer bg-transparent">
+                        <div className="btn-group w-100" role="group">
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleLoadSchemaFromDuckDB(savedSchema)}
+                          >
+                            <Icon name="download" /> Load
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteSavedSchema(savedSchema.id, savedSchema.schema_name)}
+                          >
+                            <Icon name="trash" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-3 text-center">
+              <button 
+                className="btn btn-outline-secondary"
+                onClick={loadSavedSchemas}
+                disabled={loadingSchemas}
+              >
+                <Icon name="refresh" /> Refresh List
+              </button>
             </div>
           </div>
         </div>
@@ -832,6 +1019,24 @@ export default function SchemaDesignerPage() {
                       disabled={!schema?.columns || schema.columns.length === 0}
                     >
                       <Icon name="magic" /> Generate
+                    </button>
+                  </div>
+                  <div className="btn-group w-100 mt-2" role="group">
+                    <button 
+                      className="btn btn-outline-success"
+                      onClick={handleSaveSchema}
+                      disabled={!schema?.columns || schema.columns.length === 0}
+                      title="Save schema definition to DuckDB"
+                    >
+                      <Icon name="save" /> Save Schema
+                    </button>
+                    <button 
+                      className="btn btn-outline-info"
+                      onClick={handleSaveDataToDuckDB}
+                      disabled={!generatedData || generatedData.length === 0}
+                      title="Save generated data to DuckDB"
+                    >
+                      <Icon name="database" /> Save to DuckDB
                     </button>
                   </div>
                 </div>

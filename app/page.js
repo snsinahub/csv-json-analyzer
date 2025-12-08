@@ -192,6 +192,26 @@ export default function Home() {
               </Card.Body>
             </Card>
           </div>
+
+          <div className="col-md-4">
+            <Card className="feature-card">
+              <Card.Body>
+                <div className="text-center mb-3">
+                  <Icon name="database" size="huge" color="purple" />
+                </div>
+                <Card.Title className="text-center">DuckDB Query</Card.Title>
+                <Card.Text>
+                  Store and query CSV/JSON files using embedded DuckDB. Execute SQL queries,
+                  analyze data with powerful analytics, and export results.
+                </Card.Text>
+                <div className="text-center">
+                  <Button as={Link} href="/duckdb-query" variant="dark">
+                    Query <Icon name="arrow right" />
+                  </Button>
+                </div>
+              </Card.Body>
+            </Card>
+          </div>
         </div>
 
         {/* CLI Info */}

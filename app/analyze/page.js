@@ -10,6 +10,7 @@ import VisualizationPanel from '../../components/VisualizationPanel';
 import JSONViewer from '../../components/JSONViewer';
 import Papa from 'papaparse';
 import { generateDynamicReport } from '../../lib/csvAnalyzer';
+import { storeAnalysisLog, storeFileMetadata } from '../../lib/duckdbLogger';
 
 export default function AnalyzePage() {
   const [file, setFile] = useState(null);
@@ -20,6 +21,35 @@ export default function AnalyzePage() {
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [showJSONView, setShowJSONView] = useState(false);
+  const [saveToDuckDB, setSaveToDuckDB] = useState(false);
+
+  const saveToDuckDBDatabase = async (data, filename) => {
+    try {
+      const tableName = filename.replace(/\.(csv|json)$/i, '');
+      
+      // Always send as JSON (array of objects works for both CSV and JSON)
+      const response = await fetch('/api/duckdb/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          data, 
+          tableName, 
+          fileType: 'json'  // Always use JSON since we have parsed data
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`Data saved to DuckDB table: ${result.stats.tableName}`);
+      } else {
+        toast.error('Failed to save to DuckDB: ' + result.error);
+      }
+    } catch (error) {
+      console.error('DuckDB save error:', error);
+      toast.error('Failed to save to DuckDB');
+    }
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -163,9 +193,39 @@ export default function AnalyzePage() {
           setAnalysis(analysisResult);
           const report = generateDynamicReport(flattenedData);
           setDynamicReport(report);
+          
+          // Save to DuckDB if enabled
+          if (saveToDuckDB) {
+            saveToDuckDBDatabase(normalizedData, file.name);
+          }
+          
+          // Store analysis log
+          storeAnalysisLog({
+            type: 'file_analysis',
+            page: 'analyze',
+            filename: file.name,
+            rowCount: flattenedData.length,
+            columnCount: Object.keys(flattenedData[0] || {}).length,
+            fileSize: file.size,
+            status: 'success',
+            metadata: { fileType: 'json' }
+          });
+          
           setLoading(false);
         } catch (error) {
           setError('Error parsing JSON: ' + error.message);
+          
+          // Store error log
+          storeAnalysisLog({
+            type: 'file_analysis',
+            page: 'analyze',
+            filename: file.name,
+            fileSize: file.size,
+            status: 'error',
+            error: error.message,
+            metadata: { fileType: 'json' }
+          });
+          
           setLoading(false);
         }
       };
@@ -185,10 +245,40 @@ export default function AnalyzePage() {
           setAnalysis(analysisResult);
           const report = generateDynamicReport(results.data);
           setDynamicReport(report);
+          
+          // Save to DuckDB if enabled
+          if (saveToDuckDB) {
+            saveToDuckDBDatabase(results.data, file.name);
+          }
+          
+          // Store analysis log
+          storeAnalysisLog({
+            type: 'file_analysis',
+            page: 'analyze',
+            filename: file.name,
+            rowCount: results.data.length,
+            columnCount: Object.keys(results.data[0] || {}).length,
+            fileSize: file.size,
+            status: 'success',
+            metadata: { fileType: 'csv' }
+          });
+          
           setLoading(false);
         },
         error: (error) => {
           setError('Error parsing CSV: ' + error.message);
+          
+          // Store error log
+          storeAnalysisLog({
+            type: 'file_analysis',
+            page: 'analyze',
+            filename: file.name,
+            fileSize: file.size,
+            status: 'error',
+            error: error.message,
+            metadata: { fileType: 'csv' }
+          });
+          
           setLoading(false);
         }
       });
@@ -236,6 +326,19 @@ export default function AnalyzePage() {
                 <Icon name="exclamation circle" /> {error}
               </Alert>
             )}
+
+            <div className="form-check mt-3">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="saveToDuckDBCheck"
+                checked={saveToDuckDB}
+                onChange={(e) => setSaveToDuckDB(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="saveToDuckDBCheck">
+                <Icon name="database" /> Save to DuckDB for SQL queries
+              </label>
+            </div>
 
             <div className="text-center mt-4">
               <Button

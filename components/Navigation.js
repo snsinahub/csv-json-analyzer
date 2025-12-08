@@ -50,6 +50,9 @@ export default function Navigation() {
             <Nav.Link as={Link} href="/update">
               <Icon name="edit" /> Update
             </Nav.Link>
+            <Nav.Link as={Link} href="/duckdb-query">
+              <Icon name="database" /> DuckDB
+            </Nav.Link>
             
             {/* Authentication Section */}
             <Nav.Item className="ms-3">

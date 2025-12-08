@@ -29,6 +29,7 @@
     "@tanstack/react-table": "^8.21.3",
     "bootstrap": "^5.3.8",
     "csv-parser": "^3.2.0",
+    "duckdb": "^1.4.2",
     "file-saver": "^2.0.5",
     "multer": "^2.0.2",
     "next": "^16.0.7",

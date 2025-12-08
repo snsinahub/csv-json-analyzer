@@ -10,6 +10,7 @@ import SchemaDesignWidget from '../../components/SchemaDesignWidget';
 import { generateData, getTemplatesList, getTemplate } from '../../lib/schemaGenerator';
 import { downloadCSV, downloadJSON } from '../../lib/exportUtils';
 import { saveAs } from 'file-saver';
+import { storeGeneratedData, storeAnalysisLog } from '../../lib/duckdbLogger';
 
 export default function DataGeneratorPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -30,6 +31,7 @@ export default function DataGeneratorPage() {
     includeCreate: true,
     includeDrop: false
   });
+  const [saveToDuckDB, setSaveToDuckDB] = useState(false);
   
   const templates = getTemplatesList();
   
@@ -120,6 +122,7 @@ export default function DataGeneratorPage() {
     }
     
     try {
+      const startTime = Date.now();
       const data = generateData(
         currentSchema, 
         rowCount, 
@@ -128,9 +131,60 @@ export default function DataGeneratorPage() {
       );
       setGeneratedData(data);
       setPreviewData(null);
+      const processingTime = Date.now() - startTime;
+      
       toast.success(`Generated ${data.length} rows!`);
+      
+      // Log data generation
+      storeAnalysisLog({
+        type: 'data_generation',
+        page: 'data-generator',
+        filename: currentSchema.name,
+        rowCount: data.length,
+        columnCount: currentSchema.columns.length,
+        processingTime,
+        status: 'success',
+        metadata: { 
+          mode,
+          templateId: currentSchema.id,
+          useSeed,
+          locale
+        }
+      });
     } catch (error) {
       toast.error(`Generation failed: ${error.message}`);
+      
+      // Log error
+      storeAnalysisLog({
+        type: 'data_generation',
+        page: 'data-generator',
+        filename: currentSchema?.name || 'unknown',
+        status: 'error',
+        error: error.message,
+        metadata: { mode }
+      });
+    }
+  };
+
+  const handleSaveDataToDuckDB = async () => {
+    if (!generatedData || generatedData.length === 0) {
+      toast.error('No data to save. Generate data first.');
+      return;
+    }
+
+    const currentSchema = mode === 'design' ? customSchema : selectedTemplate;
+    
+    try {
+      const tableName = currentSchema.name.toLowerCase().replace(/\s+/g, '_');
+      const result = await storeGeneratedData(generatedData, tableName, 'data-generator');
+      
+      if (result.success) {
+        toast.success(`Saved ${result.stats.rowCount} rows to DuckDB table: ${result.stats.tableName}`);
+      } else {
+        toast.error(`Failed to save to DuckDB: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to save to DuckDB: ${error.message}`);
     }
   };
   
@@ -558,6 +612,14 @@ export default function DataGeneratorPage() {
                     <Icon name="magic" /> Generate
                   </button>
                 </div>
+                <button 
+                  className="btn btn-outline-info w-100 mt-2"
+                  onClick={handleSaveDataToDuckDB}
+                  disabled={!generatedData || generatedData.length === 0}
+                  title="Save generated data to DuckDB"
+                >
+                  <Icon name="database" /> Save to DuckDB
+                </button>
               </div>
             </div>
             

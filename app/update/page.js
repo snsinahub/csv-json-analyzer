@@ -5,6 +5,7 @@ import { Container, Card, Button, Form, Alert, Table, Spinner } from 'react-boot
 import { Icon, Message } from 'semantic-ui-react';
 import Navigation from '../../components/Navigation';
 import Papa from 'papaparse';
+import { storeGeneratedData, storeAnalysisLog, storeFileMetadata } from '../../lib/duckdbLogger';
 
 export default function UpdatePage() {
   const [file, setFile] = useState(null);
@@ -207,6 +208,53 @@ export default function UpdatePage() {
       link.click();
       document.body.removeChild(link);
     }
+
+    // Log the update operation
+    storeAnalysisLog({
+      type: 'file_update',
+      page: 'update',
+      filename: file.name,
+      rowCount: updatedData.length,
+      columnCount: Object.keys(updatedData[0] || {}).length,
+      status: 'success',
+      metadata: { 
+        originalRows: originalData.length,
+        rowsAdded: rowsToAdd,
+        fileType: isJSON ? 'json' : 'csv'
+      }
+    });
+  };
+
+  const handleSaveToDuckDB = async () => {
+    if (!updatedData || updatedData.length === 0) {
+      setError('No data to save. Please update the file first.');
+      return;
+    }
+
+    try {
+      const originalName = file.name.replace(/\.(csv|json)$/, '');
+      const tableName = `${originalName}_updated`;
+      const result = await storeGeneratedData(updatedData, tableName, 'update');
+      
+      if (result.success) {
+        alert(`Saved ${result.stats.rowCount} rows to DuckDB table: ${result.stats.tableName}`);
+      } else {
+        setError(`Failed to save to DuckDB: ${result.error}`);
+      }
+    } catch (error) {
+      setError(`Failed to save to DuckDB: ${error.message}`);
+    }
+  };
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${originalName}_updated.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -288,12 +336,20 @@ export default function UpdatePage() {
                     </Button>
                     
                     {updatedData && (
-                      <Button
-                        variant="primary"
-                        onClick={handleDownload}
-                      >
-                        <Icon name="download" /> Download Updated CSV
-                      </Button>
+                      <>
+                        <Button
+                          variant="primary"
+                          onClick={handleDownload}
+                        >
+                          <Icon name="download" /> Download Updated CSV
+                        </Button>
+                        <Button
+                          variant="success"
+                          onClick={handleSaveToDuckDB}
+                        >
+                          <Icon name="database" /> Save to DuckDB
+                        </Button>
+                      </>
                     )}
                   </div>
                 </Form>

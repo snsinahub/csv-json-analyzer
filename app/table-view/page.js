@@ -12,6 +12,7 @@ import JSONViewer from '../../components/JSONViewer';
 import { inferColumnTypes } from '../../lib/dataValidation';
 import { downloadCSV, getExportFilename } from '../../lib/exportUtils';
 import { EditHistory, createCellEdit, applyEdit, reverseEdit, getEditedCells } from '../../lib/editHistory';
+import { storeGeneratedData, storeAnalysisLog, storeFileMetadata } from '../../lib/duckdbLogger';
 
 export default function TableViewPage() {
   const [csvData, setCsvData] = useState(null);
@@ -218,8 +219,53 @@ export default function TableViewPage() {
       toast.success('Changes saved!');
       editHistory.clear();
       setEditedCells(new Set());
+      
+      // Log the edit operation
+      storeAnalysisLog({
+        type: 'file_edit',
+        page: 'table-view',
+        filename: fileName,
+        rowCount: csvData.length,
+        columnCount: Object.keys(csvData[0] || {}).length,
+        status: 'success',
+        metadata: { 
+          editsCount: editHistory.getEditCount(),
+          editMode: editMode
+        }
+      });
     } else {
       toast.error(`Save failed: ${result.error}`);
+    }
+  };
+
+  const handleSaveToDuckDB = async () => {
+    if (!csvData || csvData.length === 0) {
+      toast.error('No data to save');
+      return;
+    }
+
+    try {
+      const tableName = fileName.replace(/\.(csv|json)$/, '').toLowerCase().replace(/\s+/g, '_');
+      const result = await storeGeneratedData(csvData, tableName, 'table-view');
+      
+      if (result.success) {
+        toast.success(`Saved ${result.stats.rowCount} rows to DuckDB table: ${result.stats.tableName}`);
+        
+        // Store file metadata
+        await storeFileMetadata({
+          filename: fileName,
+          fileType: fileName.endsWith('.json') ? 'json' : 'csv',
+          fileSize: 0,
+          rowCount: csvData.length,
+          columnCount: Object.keys(csvData[0] || {}).length,
+          source: 'table-view',
+          columns: Object.keys(csvData[0] || {})
+        });
+      } else {
+        toast.error(`Failed to save to DuckDB: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to save to DuckDB: ${error.message}`);
     }
   };
   
@@ -405,6 +451,13 @@ export default function TableViewPage() {
                         disabled={editHistory.getEditCount() === 0}
                       >
                         <Icon name="save" /> Save Changes
+                      </button>
+                      <button 
+                        className="btn btn-info"
+                        onClick={handleSaveToDuckDB}
+                        disabled={!csvData || csvData.length === 0}
+                      >
+                        <Icon name="database" /> Save to DuckDB
                       </button>
                     </div>
                   </div>
