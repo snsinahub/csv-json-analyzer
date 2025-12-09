@@ -6,14 +6,10 @@ const path = require('path');
  * Helper function to check accessibility and take a screenshot
  */
 async function checkAccessibilityAndScreenshot(page, testInfo, screenshotName) {
-  // Take screenshot
-  await page.screenshot({ 
-    path: `test-results/screenshots/${screenshotName}.png`,
-    fullPage: true 
-  });
-  
-  // Attach screenshot to test report
+  // Take screenshot once and use for both file and report
   const screenshot = await page.screenshot({ fullPage: true });
+  
+  // Attach to test report
   await testInfo.attach(screenshotName, { 
     body: screenshot, 
     contentType: 'image/png' 

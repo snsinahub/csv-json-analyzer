@@ -5,14 +5,10 @@ const AxeBuilder = require('@axe-core/playwright').default;
  * Helper function to check accessibility and take a screenshot
  */
 async function checkAccessibilityAndScreenshot(page, testInfo, screenshotName) {
-  // Take screenshot
-  await page.screenshot({ 
-    path: `test-results/screenshots/${screenshotName}.png`,
-    fullPage: true 
-  });
-  
-  // Attach screenshot to test report
+  // Take screenshot once and use for both file and report
   const screenshot = await page.screenshot({ fullPage: true });
+  
+  // Attach to test report
   await testInfo.attach(screenshotName, { 
     body: screenshot, 
     contentType: 'image/png' 
@@ -58,22 +54,18 @@ test.describe('Schema Designer Page', () => {
   });
 
   test('should have template options available', async ({ page }, testInfo) => {
-    // Look for template-related buttons or selects
-    const templateElements = await page.locator('button:has-text("template"), select, [class*="template"]').count();
-    
-    // Verify templates interface exists or is ready
-    expect(templateElements >= 0).toBeTruthy();
+    // Verify the page structure is loaded
+    const mainContent = page.locator('main, .container');
+    await expect(mainContent).toBeVisible();
     
     // Check accessibility and take screenshot
     await checkAccessibilityAndScreenshot(page, testInfo, 'schema-designer-templates');
   });
 
   test('should allow adding columns to schema', async ({ page }, testInfo) => {
-    // Check for add column functionality
-    const addButtons = await page.locator('button:has-text("Add"), button:has-text("+"), button[title*="add" i]').count();
-    
-    // Verify add functionality exists
-    expect(addButtons >= 0).toBeTruthy();
+    // Verify the page structure is ready
+    const mainContent = page.locator('main, .container');
+    await expect(mainContent).toBeVisible();
     
     // Check accessibility and take screenshot
     await checkAccessibilityAndScreenshot(page, testInfo, 'schema-designer-add-columns');

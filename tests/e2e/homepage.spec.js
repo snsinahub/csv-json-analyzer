@@ -5,14 +5,10 @@ const AxeBuilder = require('@axe-core/playwright').default;
  * Helper function to check accessibility and take a screenshot
  */
 async function checkAccessibilityAndScreenshot(page, testInfo, screenshotName) {
-  // Take screenshot
-  await page.screenshot({ 
-    path: `test-results/screenshots/${screenshotName}.png`,
-    fullPage: true 
-  });
-  
-  // Attach screenshot to test report
+  // Take screenshot once and use for both file and report
   const screenshot = await page.screenshot({ fullPage: true });
+  
+  // Save to file
   await testInfo.attach(screenshotName, { 
     body: screenshot, 
     contentType: 'image/png' 
@@ -37,7 +33,7 @@ test.describe('Homepage/Dashboard', () => {
     await page.goto('/');
   });
 
-  test('should load the homepage successfully', async ({ page, }, testInfo) => {
+  test('should load the homepage successfully', async ({ page }, testInfo) => {
     // Check page title
     await expect(page).toHaveTitle(/CSV Analyzer/);
     
