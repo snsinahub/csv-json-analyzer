@@ -11,7 +11,11 @@
     "check-auth": "node scripts/check-auth-setup.js",
     "setup-auth": "./scripts/setup-auth.sh",
     "setup-oauth": "node scripts/setup-oauth.js",
-    "check-config": "curl http://localhost:3000/api/config/status"
+    "check-config": "curl http://localhost:3000/api/config/status",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "repository": {
     "type": "git",
@@ -42,5 +46,10 @@
     "recharts": "^3.5.1",
     "semantic-ui-css": "^2.5.0",
     "semantic-ui-react": "^2.1.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.48.2",
+    "axe-core": "^4.10.2"
   }
 }

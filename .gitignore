@@ -45,3 +45,8 @@ next-env.d.ts
 # Generated CSV files (optional - remove if you want to track them)
 # data/generated*.csv
 # data/*-updated.csv
+
+# Playwright test artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
