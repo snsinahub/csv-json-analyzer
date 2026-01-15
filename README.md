@@ -1,27 +1,36 @@
-# CSV Analyzer
+# CSV & JSON Analyzer
 
-A comprehensive Node.js application for analyzing, generating, and updating CSV files with both command-line interface (CLI) and web application capabilities.
+A comprehensive Node.js application for analyzing, generating, querying, and updating CSV and JSON files with both command-line interface (CLI) and web application capabilities.
 
-## Features
+## ✨ Features
 
-- **Dual Interface**: Access functionality through both CLI scripts and a modern web application
+### Web Application Features
 - **🔐 Portable GitHub OAuth**: Sign in with GitHub - works everywhere without .env files!
-- **CSV Analysis**: Detailed statistics, dynamic field type detection, business pattern recognition, and interactive visualizations
-- **Table View**: Paginated data table with sorting, filtering, inline editing, and JSON export
-- **Data Generator**: Visual schema designer with 11+ templates to generate realistic fake data
-- **CSV Updates**: Add new rows to existing CSV files
+- **CSV/JSON Analysis**: Detailed statistics, dynamic field type detection, business pattern recognition, and interactive visualizations
+- **DuckDB SQL Queries**: Embedded database for running SQL queries on CSV/JSON data without external database
+- **Table View & Editor**: Paginated data table with sorting, filtering, inline editing, undo/redo, and export capabilities
+- **Schema Designer**: Visual schema builder with 28+ data types and 5 pre-built templates
+- **Data Generator**: Generate realistic fake data with customizable schemas
+- **CSV/JSON Updates**: Add new rows to existing files
 - **Responsive Design**: Professional web interface using Bootstrap and Semantic UI
-- **Interactive Dashboard**: User-friendly web application with drag-and-drop file upload
+- **Interactive Dashboard**: User-friendly application with drag-and-drop file upload
 
-## Technology Stack
+### CLI Tools
+- **CSV Analysis**: Analyze CSV files from command line
+- **Data Generation**: Generate sample CSV files
+- **CSV Updates**: Add rows to existing CSV files
+- **OAuth Configuration**: Interactive setup script for portable OAuth
+
+## 🛠️ Technology Stack
 
 - **Runtime**: Node.js
 - **Web Framework**: Next.js 16 with React 18
+- **Database**: DuckDB (embedded analytical database for SQL queries)
 - **Authentication**: NextAuth.js with GitHub OAuth + PKCE Security
 - **UI Libraries**: Bootstrap 5.3 (responsive design) + Semantic UI (UI components)
-- **CSV Processing**: PapaParse
+- **Data Processing**: PapaParse (CSV), custom JSON parser with flattening
 - **Data Visualization**: Recharts (interactive charts)
-- **Data Generation**: Faker.js (realistic fake data)
+- **Data Generation**: @faker-js/faker (realistic fake data)
 - **File Handling**: file-saver (client-side downloads)
 - **Notifications**: react-hot-toast
 - **Security**: AES-256 encrypted credential storage, PKCE OAuth flow
@@ -68,20 +77,14 @@ npm install
 ```bash
 npm run dev
 ```
-      You should see ✅ for all variables.
 
-4. Start the development server:
-```bash
-npm run dev
-```
-
-5. Open your browser: http://localhost:3000
+5. Open your browser and navigate to: http://localhost:3000
 
 6. Click **"Sign in with GitHub"** → Authorize → You're logged in! ✅
 
-**See `START_HERE.md` for detailed setup instructions.**
+**See [START_HERE.md](./START_HERE.md) for detailed setup instructions and [DOC_INDEX.md](./DOC_INDEX.md) for all documentation.**
 
-## Usage
+## 🚀 Quick Start
 
 ### Web Application
 
@@ -96,12 +99,29 @@ http://localhost:3000
 ```
 
 3. Use the web interface to:
+   - **Sign In**: Click the "Sign In" button in the navigation to personalize your experience
    - **Dashboard**: View overview and quick access to all features
-   - **Analyze**: Upload CSV files and view detailed statistics with dynamic insights and visualizations
-   - **Table View**: View, sort, filter, edit CSV data in a paginated table and export to JSON
-   - **Data Generator**: Design schemas and generate realistic fake data with pre-built templates
-   - **Generate**: Create new CSV files with sample data
-   - **Update**: Add rows to existing CSV files
+   - **Analyze**: Upload CSV/JSON files and view detailed statistics with dynamic insights and visualizations
+   - **DuckDB Query**: Run SQL queries on your data without external database setup
+   - **Table View**: View, sort, filter, edit CSV/JSON data in a paginated table and export to JSON/CSV
+   - **Schema Designer**: Design custom data schemas with 28+ data types
+   - **Data Generator**: Generate realistic fake data using pre-built templates or custom schemas
+   - **Update**: Add rows to existing CSV/JSON files
+
+### DuckDB SQL Queries
+
+Query your CSV/JSON data using SQL without any database setup:
+
+1. Upload a CSV or JSON file in the **Analyze** page
+2. Check "Save to DuckDB for SQL queries"
+3. Navigate to **DuckDB Query** page
+4. Run SQL queries like:
+   ```sql
+   SELECT * FROM my_table WHERE amount > 1000;
+   SELECT category, COUNT(*), AVG(price) FROM products GROUP BY category;
+   ```
+
+**See [DUCKDB_README.md](./DUCKDB_README.md) for complete DuckDB documentation.**
 
 ### Command-Line Interface (CLI)
 
@@ -122,15 +142,12 @@ node scripts/analyze.js data/orders.csv
 - Total rows and columns
 - Column names
 - Column statistics (unique values, null counts, numeric analysis)
-3. Use the web interface to:
-   - **Sign In**: Click the "Sign In" button in the navigation to personalize your experience (saved locally)
-   - **Dashboard**: View overview and quick access to all features
-   - **Analyze**: Upload CSV files and view detailed statistics with dynamic insights and visualizations
-   - **Table View**: View, sort, filter, edit CSV data in a paginated table and export to JSON
-   - **Schema Designer**: Design custom data schemas with 60+ data types
-   - **Data Generator**: Generate realistic fake data using pre-built templates or custom schemas
-   - **Generate**: Create new CSV files with sample data
-   - **Update**: Add rows to existing CSV files
+
+#### Generate a CSV File
+
+Generate a CSV file with sample employee data:
+
+```bash
 node scripts/generate.js <output-file-path> [rows]
 ```
 
@@ -164,16 +181,22 @@ node scripts/update.js data/orders.csv data/orders-updated.csv 5
 - `output-csv`: Path where the updated CSV will be saved
 - `rows-to-add` (optional): Number of rows to add (default: 1)
 
-## Project Structure
+## 🏗️ Project Structure
 
 ```
 csv-analyzer/
 ├── app/                      # Next.js application routes
-│   ├── analyze/             # CSV analysis page with visualizations
-│   ├── table-view/          # Paginated table view with editing
-│   ├── schema-designer/     # Data generator with schema builder
+│   ├── analyze/             # CSV/JSON analysis page with visualizations
+│   ├── table-view/          # Paginated table view with inline editing
+│   ├── schema-designer/     # Data schema builder with templates
+│   ├── data-generator/      # Template-based data generation
+│   ├── duckdb-query/        # SQL query interface for DuckDB
 │   ├── generate/            # CSV generation page
-│   ├── update/              # CSV update page
+│   ├── update/              # CSV/JSON update page
+│   ├── api/                 # API routes
+│   │   ├── duckdb/         # DuckDB API endpoints (import, query, tables)
+│   │   ├── config/         # OAuth configuration endpoints
+│   │   └── auth/           # NextAuth.js authentication
 │   ├── layout.js            # Root layout with Bootstrap/Semantic UI
 │   ├── page.js              # Dashboard homepage
 │   └── globals.css          # Global styles
@@ -198,22 +221,91 @@ csv-analyzer/
 │   └── sample.csv
 ├── lib/                     # Utilities and helpers
 │   ├── csvHelper.js         # CSV processing utilities
+│   ├── jsonHelper.js        # JSON parsing and flattening
 │   ├── csvAnalyzer.js       # Dynamic analysis engine
+│   ├── duckdb.js            # DuckDB database operations
+│   ├── duckdbLogger.js      # DuckDB logging utilities
 │   ├── chartUtils.js        # Chart data preparation
 │   ├── schemaGenerator.js   # Data generation with templates
 │   ├── tableUtils.js        # Pagination, sorting, filtering
 │   ├── exportUtils.js       # JSON/CSV export
 │   ├── dataValidation.js    # Type checking and validation
-│   └── editHistory.js       # Undo/redo management
-├── scripts/                 # CLI scripts
+│   ├── editHistory.js       # Undo/redo management
+│   └── auth-config.js       # Portable OAuth configuration
+├── scripts/                 # CLI scripts and tools
 │   ├── analyze.js           # CSV analysis script
 │   ├── generate.js          # CSV generation script
-│   └── update.js            # CSV update script
+│   ├── update.js            # CSV update script
+│   ├── setup-oauth.js       # Interactive OAuth setup
+│   └── check-auth-setup.js  # OAuth configuration validator
 ├── public/                  # Static assets
+├── docs/                    # Documentation files (28+ guides)
+│   ├── DOC_INDEX.md        # Documentation navigation
+│   ├── DUCKDB_README.md    # DuckDB usage guide
+│   ├── OAUTH_QUICKSTART.md # OAuth setup guide
+│   └── ...                  # Additional specialized docs
 ├── package.json             # Project dependencies
 ├── next.config.js           # Next.js configuration
+├── docker-compose.yml       # Docker orchestration
+├── Dockerfile               # Container configuration
+├── test-duckdb.js          # DuckDB integration tests
 └── README.md                # This file
 ```
+
+## 🔌 API Reference
+
+### DuckDB API Endpoints
+
+The application provides RESTful API endpoints for DuckDB operations:
+
+#### Import Data
+```
+POST /api/duckdb/import
+Body: { 
+  data: string | object,
+  tableName: string,
+  fileType: 'csv' | 'json' 
+}
+```
+Import CSV or JSON data into a DuckDB table.
+
+#### Execute Query
+```
+POST /api/duckdb/query
+Body: { query: string }
+```
+Execute SQL SELECT queries on stored tables. Only SELECT statements are allowed for security.
+
+#### List Tables
+```
+GET /api/duckdb/tables
+```
+Get a list of all tables in the database.
+
+#### Table Details
+```
+GET /api/duckdb/table/[tableName]?action=schema|preview|stats
+```
+- `?action=schema` - Get column definitions and types
+- `?action=preview&limit=100` - Preview table data with row limit
+- `?action=stats` - Get comprehensive table statistics
+
+### OAuth Configuration API
+
+#### Check Configuration Status
+```
+GET /api/config/status
+```
+Verify OAuth configuration is complete.
+
+#### Setup OAuth
+```
+POST /api/config/setup
+Body: { githubId: string, githubSecret: string, nextAuthSecret: string }
+```
+Configure OAuth credentials programmatically.
+
+For complete API documentation, see [DUCKDB_README.md](./DUCKDB_README.md) and [PORTABLE_OAUTH_SETUP.md](./PORTABLE_OAUTH_SETUP.md).
 
 ## Adding New Scripts
 
@@ -293,7 +385,9 @@ async function main() {
 main();
 ```
 
-## Building for Production
+## 🚢 Deployment
+
+### Production Build
 
 Build the web application for production:
 
@@ -307,7 +401,58 @@ Start the production server:
 npm start
 ```
 
-## Development
+### Deployment Options
+
+#### Vercel (Recommended)
+1. Push your code to GitHub
+2. Import project in Vercel dashboard
+3. Configure environment variables:
+   - `GITHUB_ID` - GitHub OAuth Client ID
+   - `GITHUB_SECRET` - GitHub OAuth Client Secret
+   - `NEXTAUTH_SECRET` - NextAuth.js secret (generate with `openssl rand -base64 32`)
+   - `NEXTAUTH_URL` - Your production URL
+4. Deploy!
+
+See [PORTABLE_OAUTH_SETUP.md](./PORTABLE_OAUTH_SETUP.md) for platform-specific guides.
+
+#### Docker
+Use the provided Docker configuration:
+
+```bash
+# Build the image
+docker build -t csv-analyzer .
+
+# Run with docker-compose
+docker-compose up -d
+```
+
+Configure environment variables in `.env.docker` file. DuckDB data persists in Docker volumes.
+
+#### Other Platforms
+The application supports deployment on:
+- **AWS** (EC2, ECS, Elastic Beanstalk, Lambda)
+- **Kubernetes** (with persistent volumes for DuckDB)
+- **Netlify**
+- **Heroku**
+- **Railway**
+- **Render**
+
+See [PORTABLE_OAUTH_SETUP.md](./PORTABLE_OAUTH_SETUP.md) for detailed deployment guides for each platform.
+
+### Environment Variables
+
+Required for production:
+- `GITHUB_ID` - GitHub OAuth application client ID
+- `GITHUB_SECRET` - GitHub OAuth application client secret
+- `NEXTAUTH_SECRET` - Random string for session encryption (32+ characters)
+- `NEXTAUTH_URL` - Full URL of your application
+
+Optional:
+- `DUCKDB_PATH` - Path for persistent DuckDB storage (default: `:memory:`)
+
+## 🤝 Contributing & Development
+
+### Development Workflow
 
 Run the development server with hot reload:
 
@@ -315,7 +460,55 @@ Run the development server with hot reload:
 npm run dev
 ```
 
-## Available Helper Functions
+### Running Tests
+
+Test DuckDB integration:
+
+```bash
+node test-duckdb.js
+```
+
+### Project Guidelines
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes following the existing code style
+4. Test your changes thoroughly
+5. Commit your changes: `git commit -am 'Add new feature'`
+6. Push to the branch: `git push origin feature-name`
+7. Submit a pull request
+
+### Code Structure
+
+- **UI Components**: Place in `components/` directory
+- **Page Routes**: Add to `app/` directory following Next.js 13+ conventions
+- **API Endpoints**: Create in `app/api/` directory
+- **Utilities**: Add helper functions to `lib/` directory
+- **CLI Scripts**: Add command-line tools to `scripts/` directory
+
+### Documentation
+
+When adding new features:
+- Update this README.md with user-facing features
+- Create detailed documentation in separate .md files if needed
+- Update [DOC_INDEX.md](./DOC_INDEX.md) with links to new documentation
+- Add code comments for complex logic
+
+## 📚 Documentation
+
+This project includes comprehensive documentation:
+
+- **[DOC_INDEX.md](./DOC_INDEX.md)** - Complete documentation index and navigation guide
+- **[DUCKDB_README.md](./DUCKDB_README.md)** - DuckDB integration and SQL query guide
+- **[DUCKDB_FEATURES.md](./DUCKDB_FEATURES.md)** - Complete DuckDB feature list
+- **[OAUTH_QUICKSTART.md](./OAUTH_QUICKSTART.md)** - 60-second OAuth setup guide
+- **[PORTABLE_OAUTH_SETUP.md](./PORTABLE_OAUTH_SETUP.md)** - Comprehensive deployment guide for all platforms
+- **[JSON_SUPPORT_SUMMARY.md](./JSON_SUPPORT_SUMMARY.md)** - JSON file support documentation
+- **[START_HERE.md](./START_HERE.md)** - Detailed getting started guide
+
+See [DOC_INDEX.md](./DOC_INDEX.md) for the complete documentation index (28+ guides).
+
+## 📋 Available Helper Functions
 
 The `lib/csvHelper.js` module provides the following functions:
 
@@ -442,27 +635,24 @@ All modern browsers with ES6+ support.
 
 ## Performance Notes
 
-- Table View: Optimized for datasets up to 10,000 rows
-- Data Generator: Can generate up to 100,000 rows
-- Large file handling: Uses chunked processing for files >5000 rows
-- Client-side processing: All operations run in browser (no server required)
+- **Table View**: Optimized for datasets up to 10,000 rows
+- **Data Generator**: Can generate up to 100,000 rows
+- **DuckDB**: Handles millions of rows efficiently with SQL queries
+- **Large file handling**: Uses chunked processing for files >5000 rows
+- **Client-side processing**: CSV/JSON parsing runs in browser
+- **Server-side**: DuckDB queries execute on the server for optimal performance
 
-## Contributing
+## 📄 License
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit your changes: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin feature-name`
-5. Submit a pull request
+MIT License - see [LICENSE](./LICENSE) file for details.
 
-## License
+## 💬 Support
 
-ISC License
+For issues, questions, and feature requests:
+- Create an issue on the [GitHub repository](https://github.com/snsinahub/csv-json-analyzer/issues)
+- Check [DOC_INDEX.md](./DOC_INDEX.md) for comprehensive documentation
+- See [OAUTH_QUICKSTART.md](./OAUTH_QUICKSTART.md) for setup help
 
-## Support
+---
 
-For issues and questions, please create an issue on the [GitHub repository](https://github.com/snsinahub-org/csv-analyzer/issues).
-
-**Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, Faker.js, and NextAuth.js**
-
-**Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, and Faker.js****Built with ❤️ using Next.js, React, Bootstrap, Semantic UI, Recharts, and Faker.js**
+**Built with ❤️ using Next.js, React, DuckDB, Bootstrap, Semantic UI, Recharts, Faker.js, and NextAuth.js**
