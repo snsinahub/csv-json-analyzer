@@ -30,7 +30,7 @@ A comprehensive Node.js application for analyzing, generating, querying, and upd
 - **UI Libraries**: Bootstrap 5.3 (responsive design) + Semantic UI (UI components)
 - **Data Processing**: PapaParse (CSV), custom JSON parser with flattening
 - **Data Visualization**: Recharts (interactive charts)
-- **Data Generation**: @faker-js/faker (realistic fake data)
+- **Data Generation**: `@faker-js/faker` (realistic fake data)
 - **File Handling**: file-saver (client-side downloads)
 - **Notifications**: react-hot-toast
 - **Security**: AES-256 encrypted credential storage, PKCE OAuth flow
@@ -46,8 +46,8 @@ A comprehensive Node.js application for analyzing, generating, querying, and upd
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/snsinahub-org/csv-analyzer.git
-cd csv-analyzer
+git clone https://github.com/snsinahub/csv-json-analyzer.git
+cd csv-json-analyzer
 ```
 
 2. Install dependencies:
