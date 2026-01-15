@@ -86,21 +86,12 @@ npm run dev
 
 ## 🚀 Quick Start
 
-### Web Application
+*Already installed? Just run `npm run dev` and open http://localhost:3000. Need to install? See [Installation](#installation) section above.*
 
-1. Start the development server:
-```bash
-npm run dev
-```
+### Web Application Features
 
-2. Open your browser and navigate to:
-```
-http://localhost:3000
-```
-
-3. Use the web interface to:
+Once the server is running, use the web interface to:
    - **Sign In**: Click the "Sign In" button in the navigation to personalize your experience
-   - **Dashboard**: View overview and quick access to all features
    - **Analyze**: Upload CSV/JSON files and view detailed statistics with dynamic insights and visualizations
    - **DuckDB Query**: Run SQL queries on your data without external database setup
    - **Table View**: View, sort, filter, edit CSV/JSON data in a paginated table and export to JSON/CSV
@@ -184,7 +175,7 @@ node scripts/update.js data/orders.csv data/orders-updated.csv 5
 ## 🏗️ Project Structure
 
 ```
-csv-analyzer/
+csv-json-analyzer/
 ├── app/                      # Next.js application routes
 │   ├── analyze/             # CSV/JSON analysis page with visualizations
 │   ├── table-view/          # Paginated table view with inline editing
